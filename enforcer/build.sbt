@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.12.8"
 
+mainClass in (Compile, run) := Some("trust40.Main")
+
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % "2.12.8",
   "org.choco-solver" % "choco-solver" % "4.10.0",

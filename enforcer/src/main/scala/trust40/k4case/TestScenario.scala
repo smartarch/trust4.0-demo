@@ -8,7 +8,7 @@ case class TestScenarioSpec(
                              workersPerWorkplaceCount: Int,
                              workersOnStandbyCount: Int,
                              factoriesCount: Int,
-                             startTs: String
+                             startTime: LocalDateTime
                            )
 
 case class Position(x: Double, y: Double)
@@ -16,9 +16,13 @@ case class Position(x: Double, y: Double)
 
 case class ScenarioEvent(timestamp: LocalDateTime, eventType: String, person: String, position: Position)
 
+trait WithId {
+  def id: String
+}
+
 class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGenerator {
 
-  val startTimestamp = LocalDateTime.parse("2018-12-03T08:00:00")
+  val startTimestamp = scenarioParams.startTime
   var now = startTimestamp
 
   case class WorkerPotentiallyLateNotification(shift: Shift, worker: Worker) extends Notification
@@ -30,7 +34,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   class Door(
               val id: String,
               val position: Position
-            ) extends Component {
+            ) extends Component with WithId {
     name(s"Door ${id}")
 
     override def toString = s"Door($id, $position)"
@@ -39,7 +43,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   class Dispenser(
                    val id: String,
                    val position: Position
-                 ) extends Component {
+                 ) extends Component with WithId {
     name(s"Protection equipment dispenser ${id}")
 
     override def toString = s"Dispenser($id, $position)"
@@ -50,7 +54,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
                 var position: Position,
                 val capabilities: Set[String],
                 var hasHeadGear: Boolean
-              ) extends Component {
+              ) extends Component with WithId {
     name(s"Worker ${id}")
 
     override def toString = s"Worker($id, $position, $capabilities)"
@@ -62,7 +66,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
               val id: String,
               val positions: List[Position],
               val entryDoor: Door
-            ) extends Component {
+            ) extends Component with WithId {
     name(s"Room ${id}")
   }
 
@@ -103,7 +107,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
                val workers: List[Worker],
                val standbys: List[Worker],
                val assignments: Map[Worker, String]
-             ) extends Component {
+             ) extends Component with WithId {
     name(s"Shift ${id}")
 
     override def toString = s"Shift($startTime, $endTime, $workPlace, $foreman, $workers, $standbys, $assignments)"
@@ -299,12 +303,12 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 }
 
 object TestScenario {
-  def createScenarioSpec(factoriesCount: Int, workersPerWorkplaceCount: Int, workersOnStandbyCount: Int) = {
+  def createScenarioSpec(factoriesCount: Int, workersPerWorkplaceCount: Int, workersOnStandbyCount: Int, startTime: LocalDateTime) = {
     TestScenarioSpec(
       workersPerWorkplaceCount = workersPerWorkplaceCount,
       workersOnStandbyCount = workersOnStandbyCount,
       factoriesCount = factoriesCount,
-      startTs = "2018-12-03T08:00:00"
+      startTime = startTime
     )
   }
 }

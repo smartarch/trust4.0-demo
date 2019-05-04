@@ -4,27 +4,36 @@ import java.time.LocalDateTime
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import trust40.k4case.Enforcer.ResolverResult
+import trust40.enforcer.tcof.AllowAction
+import trust40.k4case.Simulation.{Permissions, Reset}
 
-import scala.util.control.Breaks.break
+import scala.collection.mutable
+
 
 object Resolver {
-  def props(scenario: TestScenario) = Props(new Resolver(scenario))
+  def props(scenarioSpec: TestScenarioSpec) = Props(new Resolver(scenarioSpec))
 
   final case class Resolve(currentTime: LocalDateTime, events: List[ScenarioEvent])
 }
 
-class Resolver(val scenario: TestScenario) extends Actor {
+class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
   import Resolver._
 
   private val log = Logging(context.system, this)
 
   private val solverLimitTime = 60000000000L
 
-  private def resolve(currentTime: LocalDateTime, events: List[ScenarioEvent]): Unit = {
+  private var scenario: TestScenario = _
+
+  private var currentEpoch: Int = _
+
+
+  private def processResolve(currentTime: LocalDateTime, events: List[ScenarioEvent]): Unit = {
     log.info("Resolver started")
     log.info("Time: " + currentTime)
     log.info("Events: " + events)
+
+    scenario.now = currentTime
 
     for (event <- events) {
       val worker = scenario.workersMap(event.person)
@@ -34,6 +43,8 @@ class Resolver(val scenario: TestScenario) extends Actor {
         worker.hasHeadGear = true
       }
     }
+
+    val perms = mutable.ListBuffer.empty[(String, String, String)]
 
     for (factoryTeam <- scenario.factoryTeams) {
       factoryTeam.init()
@@ -46,24 +57,36 @@ class Resolver(val scenario: TestScenario) extends Actor {
 
         factoryTeam.commit()
 
-        // for (action <- shiftTeams.actions) {
-        //  log.info(action)
-        // }
+        for (action <- factoryTeam.actions) {
+          println(action)
+          action match {
+            case AllowAction(subj: WithId, action, obj: WithId) =>
+              perms += ((subj.id, action, obj.id))
+            case _ =>
+          }
+        }
 
       } else {
-
         log.error("Error. No solution exists.")
-        break()
       }
     }
 
     log.info("Resolver finished")
+
+    sender() ! Permissions(currentEpoch, perms.toList)
+  }
+
+  private def processReset(epoch: Int): Unit = {
+    currentEpoch = epoch
+    scenario = new TestScenario(scenarioSpec)
   }
 
   def receive = {
     case Resolve(currentTime, events) =>
-      resolve(currentTime, events)
-      sender() ! ResolverResult()
+      processResolve(currentTime, events)
+
+    case Reset(epoch: Int) =>
+      processReset(epoch)
   }
 
 }

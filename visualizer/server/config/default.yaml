@@ -4,8 +4,5 @@ mysql:
   password: trustvis
   database: trustvis
 
-modelSync:
-  period: 200 # ms
-
 enforcer:
   url: http://localhost:3100/

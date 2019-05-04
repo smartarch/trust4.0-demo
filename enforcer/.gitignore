@@ -20,9 +20,5 @@ project/plugins/project/
 
 .idea/
 
-precompute.data
-visualization/
-out.svg
 
-/test-scenario.log
-/test-scenario-perf.log
+/main.log

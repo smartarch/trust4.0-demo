@@ -3,20 +3,14 @@ package trust40.k4case
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, LocalDateTime}
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, Props}
 import akka.event.Logging
-import Enforcer.Events
+import trust40.k4case.Simulation.{Events, Reset, Step}
 
 import scala.collection.mutable
 import scala.util.Random
 
-object Worker {
-  final case class Step(currentTime: LocalDateTime)
-}
-
-abstract class AbstractSimulatedWorker(val enforcer: ActorRef, val person: String, val startTime: LocalDateTime) extends Actor {
-  import Worker._
-
+abstract class AbstractSimulatedWorker(val person: String, val startTime: LocalDateTime) extends Actor {
   protected val log = Logging(context.system, this)
   def startPosition = Position(0, 90)
 
@@ -24,6 +18,11 @@ abstract class AbstractSimulatedWorker(val enforcer: ActorRef, val person: Strin
     def getEvents(currentTime: LocalDateTime): List[ScenarioEvent] = List()
     def isDue(currentTime: LocalDateTime) = !currentTime.isBefore(startTime)
     def isOver(currentTime: LocalDateTime) = !currentTime.isBefore(startTime.plus(duration))
+  }
+
+  private class InitAction() extends Action(startTime, Duration.ZERO, startPosition, startPosition) {
+    override def toString: String = s"InitAction($startTime, $startPosition)"
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(startTime, "init", person, startPosition))
   }
 
   private class MoveAction(startTime: LocalDateTime, duration: Duration, startPosition: Position, targetPosition: Position) extends Action(startTime, duration, startPosition, targetPosition) {
@@ -62,8 +61,10 @@ abstract class AbstractSimulatedWorker(val enforcer: ActorRef, val person: Strin
   private val futureActions = mutable.ListBuffer.empty[Action]
   private var currentAction: Action = _
 
-  protected var currentTime: LocalDateTime = startTime
-  protected var currentPosition: Position = startPosition
+  protected var currentTime: LocalDateTime = _
+  protected var currentPosition: Position = _
+
+  protected var currentEpoch: Int = _
 
   private def generateEvents(time: LocalDateTime): List[ScenarioEvent] = {
     val events = mutable.ListBuffer.empty[ScenarioEvent]
@@ -146,100 +147,124 @@ abstract class AbstractSimulatedWorker(val enforcer: ActorRef, val person: Strin
     def hours = Duration.ofHours(value)
   }
 
-  def generateActions() = List()
+  protected def generateActions() {}
+  protected def generateInitialActions() {}
+
+  private def processStep(currentTime: LocalDateTime): Unit = {
+    val events = generateEvents(currentTime)
+    context.parent ! Events(currentEpoch, events)
+  }
+
+  private def processReset(epoch: Int): Unit = {
+    currentEpoch = epoch
+
+    futureActions.clear()
+    currentAction = null
+
+    currentTime = startTime
+    currentPosition = startPosition
+
+    futureActions += new InitAction()
+    generateInitialActions()
+  }
 
   def receive = {
-    case Step(currentTime) =>
-      val events = generateEvents(currentTime)
-      enforcer ! Events(events)
+    case Step(currentTime) => processStep(currentTime)
+    case Reset(epoch) => processReset(epoch)
   }
 }
 
 
 object SimulatedWorkerInShiftA {
-  def props(enforcer: ActorRef, person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftA(enforcer, person, startTime))
+  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftA(person, startTime))
 }
 
-class SimulatedWorkerInShiftA(enforcer: ActorRef, person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(enforcer, person, startTime) {
-  waitRandom(29 minutes, 39 minutes)
+class SimulatedWorkerInShiftA(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
+  override protected def generateInitialActions(): Unit = {
+    waitRandom(29 minutes, 39 minutes)
 
-  move(20, 90)
-  accessDoor()
-  move(30, 90)
-  accessDispenser()
-  move(30, 50)
-  move(40, 50)
-  accessDoor()
-  move(50, 50)
+    move(20, 90)
+    accessDoor()
+    move(30, 90)
+    accessDispenser()
+    move(30, 50)
+    move(40, 50)
+    accessDoor()
+    move(50, 50)
 
-  waitTillAfterStart(9 hours)
+    waitTillAfterStart(9 hours)
 
-  waitRandom(2 minutes, 5 minutes)
-  move(40, 50)
-  accessDoor()
-  move(30, 50)
-  move(30, 90)
-  move(20, 90)
-  accessDoor()
-  move(0, 90)
+    waitRandom(2 minutes, 5 minutes)
+    move(40, 50)
+    accessDoor()
+    move(30, 50)
+    move(30, 90)
+    move(20, 90)
+    accessDoor()
+    move(0, 90)
+  }
 }
 
 
 object SimulatedWorkerInShiftB {
-  def props(enforcer: ActorRef, person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftB(enforcer, person, startTime))
+  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftB(person, startTime))
 }
 
-class SimulatedWorkerInShiftB(enforcer: ActorRef, person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(enforcer, person, startTime) {
-  waitRandom(23 minutes, 33 minutes)
+class SimulatedWorkerInShiftB(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
+  override protected def generateInitialActions(): Unit = {
+    waitRandom(23 minutes, 33 minutes)
 
-  move(20, 90)
-  accessDoor()
-  move(30, 90)
-  accessDispenser()
-  move(110, 90)
-  move(110, 50)
-  move(120, 50)
-  accessDoor()
-  move(130, 50)
+    move(20, 90)
+    accessDoor()
+    move(30, 90)
+    accessDispenser()
+    move(110, 90)
+    move(110, 50)
+    move(120, 50)
+    accessDoor()
+    move(130, 50)
 
-  waitTillAfterStart(9 hours)
+    waitTillAfterStart(9 hours)
 
-  waitRandom(2 minutes, 5 minutes)
-  move(120, 50)
-  accessDoor()
-  move(110, 50)
-  move(110, 90)
-  move(20, 90)
-  accessDoor()
-  move(0, 90)
+    waitRandom(2 minutes, 5 minutes)
+    move(120, 50)
+    accessDoor()
+    move(110, 50)
+    move(110, 90)
+    move(20, 90)
+    accessDoor()
+    move(0, 90)
+  }
 }
 
 
 object SimulatedWorkerInShiftC {
-  def props(enforcer: ActorRef, person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftC(enforcer, person, startTime))
+  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftC(person, startTime))
 }
 
-class SimulatedWorkerInShiftC(enforcer: ActorRef, person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(enforcer, person, startTime) {
-  waitRandom(25 minutes, 35 minutes)
+class SimulatedWorkerInShiftC(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
+  override protected def generateInitialActions(): Unit = {
+    waitRandom(25 minutes, 35 minutes)
 
-  move(20, 90)
-  accessDoor()
-  move(30, 90)
-  accessDispenser()
-  move(110, 90)
-  move(110, 100)
-  move(120, 100)
-  accessDoor()
-  move(130, 100)
+    move(20, 90)
+    accessDoor()
+    move(30, 90)
+    accessDispenser()
+    move(110, 90)
+    move(110, 100)
+    move(120, 100)
+    accessDoor()
+    move(130, 100)
 
-  waitTillAfterStart(9 hours)
+    waitTillAfterStart(9 hours)
 
-  waitRandom(2 minutes, 5 minutes)
-  move(120, 100)
-  accessDoor()
-  move(110, 100)
-  move(110, 90)
-  move(20, 90)
-  accessDoor()
-  move(0, 90)
+    waitRandom(2 minutes, 5 minutes)
+    move(120, 100)
+    accessDoor()
+    move(110, 100)
+    move(110, 90)
+    move(20, 90)
+    accessDoor()
+    move(0, 90)
+  }
 }
