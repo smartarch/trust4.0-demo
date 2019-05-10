@@ -52,28 +52,25 @@ class Simulation() extends Actor with Timers {
   private val startTime = LocalDateTime.parse("2018-12-03T08:00:00")
   private val endTime = startTime plus Duration.ofHours(10)
 
-  private val scenarioSpec = TestScenario.createScenarioSpec(factoriesCount=1, workersPerWorkplaceCount=5, workersOnStandbyCount=2, startTime)
+  private val scenarioSpec = TestScenario.createScenarioSpec(workersPerWorkplaceCount=3, workersOnStandbyCount=1, startTime)
 
   private val resolver = context.actorOf(Resolver.props(scenarioSpec), name = "resolver")
   private val enforcer: ActorRef = context.actorOf(Enforcer.props(resolver), name = "enforcer")
 
   private var workers = mutable.ListBuffer.empty[ActorRef]
-  for (factoryIdx <- 1 to scenarioSpec.factoriesCount) {
-    val factoryId = f"factory$factoryIdx%02d"
+  // foremen
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"A-foreman", "A", "foreman", startTime), name = s"A-foreman")
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"B-foreman", "B", "foreman", startTime), name = s"B-foreman")
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"C-foreman", "C", "foreman", startTime), name = s"C-foreman")
 
-    // foremen
-    workers += context.actorOf(SimulatedWorkerInShiftA.props(s"$factoryId-A-foreman", startTime), name = s"$factoryId-A-foreman")
-    workers += context.actorOf(SimulatedWorkerInShiftB.props(s"$factoryId-B-foreman", startTime), name = s"$factoryId-B-foreman")
-    workers += context.actorOf(SimulatedWorkerInShiftC.props(s"$factoryId-C-foreman", startTime), name = s"$factoryId-C-foreman")
-
-    // workers
-    for (idx <- 1 to scenarioSpec.workersPerWorkplaceCount) {
-      workers += context.actorOf(SimulatedWorkerInShiftA.props(f"$factoryId%s-A-worker-$idx%03d", startTime), name = f"$factoryId%s-A-worker-$idx%03d")
-      workers += context.actorOf(SimulatedWorkerInShiftB.props(f"$factoryId%s-B-worker-$idx%03d", startTime), name = f"$factoryId%s-B-worker-$idx%03d")
-      workers += context.actorOf(SimulatedWorkerInShiftC.props(f"$factoryId%s-C-worker-$idx%03d", startTime), name = f"$factoryId%s-C-worker-$idx%03d")
-    }
+  // workers
+  for (idx <- 1 to scenarioSpec.workersPerWorkplaceCount) {
+    workers += context.actorOf(SimulatedWorkerInShift.props(f"A-worker-$idx%03d", "A", idx.toString, startTime), name = f"A-worker-$idx%03d")
+    workers += context.actorOf(SimulatedWorkerInShift.props(f"B-worker-$idx%03d", "B", idx.toString, startTime), name = f"B-worker-$idx%03d")
+    workers += context.actorOf(SimulatedWorkerInShift.props(f"C-worker-$idx%03d", "C", idx.toString, startTime), name = f"C-worker-$idx%03d")
   }
 
+  // TODO - add standbys
 
   private val workerStates = mutable.HashMap.empty[String, WorkerState]
   private var currentPermissions: List[(String, String, String)] = _

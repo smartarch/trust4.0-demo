@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import trust40.k4case.{Simulation, SimulationState}
+import trust40.k4case.{FactoryMap, Simulation, SimulationState}
 import akka.pattern.ask
 
 import scala.concurrent.duration._
@@ -14,6 +14,7 @@ import scala.io.StdIn
 
 object Main extends MarshallersSupport {
   def main(args: Array[String]) {
+    FactoryMap.init()
 
     implicit val system = ActorSystem("trust40-enforcer")
     implicit val materializer = ActorMaterializer()
@@ -52,11 +53,14 @@ object Main extends MarshallersSupport {
     val bindingFuture = Http().bindAndHandle(route, "localhost", 3100)
 
     println("Listening on localhost:3100.")
+
+    /*
     println("Press ENTER to finish.")
     StdIn.readLine()
 
     bindingFuture
       .flatMap(_.unbind())
       .onComplete(_ => system.terminate())
+    */
   }
 }

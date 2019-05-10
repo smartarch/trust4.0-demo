@@ -7,12 +7,14 @@ import trust40.enforcer.tcof._
 case class TestScenarioSpec(
                              workersPerWorkplaceCount: Int,
                              workersOnStandbyCount: Int,
-                             factoriesCount: Int,
                              startTime: LocalDateTime
                            )
 
 case class Position(x: Double, y: Double)
-
+case class Area(left: Double, top: Double, right: Double, bottom: Double) {
+  def this(topLeft: Position, bottomRight: Position) = this(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
+  def contains(pos: Position): Boolean = pos != null && pos.x >= left && pos.y >= top && pos.x <= right && pos.y <= bottom
+}
 
 case class ScenarioEvent(timestamp: LocalDateTime, eventType: String, person: String, position: Position)
 
@@ -33,20 +35,18 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
   class Door(
               val id: String,
-              val position: Position
             ) extends Component with WithId {
     name(s"Door ${id}")
 
-    override def toString = s"Door($id, $position)"
+    override def toString = s"Door($id)"
   }
 
   class Dispenser(
                    val id: String,
-                   val position: Position
                  ) extends Component with WithId {
     name(s"Protection equipment dispenser ${id}")
 
-    override def toString = s"Dispenser($id, $position)"
+    override def toString = s"Dispenser($id)"
   }
 
   class Worker(
@@ -57,14 +57,14 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
               ) extends Component with WithId {
     name(s"Worker ${id}")
 
-    override def toString = s"Worker($id, $position, $capabilities)"
+    override def toString = s"Worker($id, $position)"
 
-    def isAt(room: Room) = room.positions.contains(position)
+    def isAt(room: Room) = room.area.contains(position)
   }
 
   abstract class Room(
               val id: String,
-              val positions: List[Position],
+              val area: Area,
               val entryDoor: Door
             ) extends Component with WithId {
     name(s"Room ${id}")
@@ -72,30 +72,30 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
   class WorkPlace(
                    id: String,
-                   positions: List[Position],
+                   area: Area,
                    entryDoor: Door
-                 ) extends Room(id, positions, entryDoor) {
+                 ) extends Room(id, area, entryDoor) {
     name(s"WorkPlace ${id}")
 
     var factory: Factory = _
 
-    override def toString = s"WorkPlace($id, $positions, $entryDoor)"
+    override def toString = s"WorkPlace($id)"
   }
 
   class Factory(
                  id: String,
-                 positions: List[Position],
+                 area: Area,
                  entryDoor: Door,
                  val dispenser: Dispenser,
                  val workPlaces: List[WorkPlace]
-               ) extends Room(id, positions, entryDoor) {
+               ) extends Room(id, area, entryDoor) {
     name(s"Factory ${id}")
 
     for (workPlace <- workPlaces) {
       workPlace.factory = this
     }
 
-    override def toString = s"Factory($id, $positions, $entryDoor, $dispenser, $workPlaces)"
+    override def toString = s"Factory($id)"
   }
 
   class Shift(
@@ -114,39 +114,33 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   }
 
 
-  val factoryIds = (1 to scenarioParams.factoriesCount).map(idx => f"factory$idx%02d")
-
   import ModelDSL._
-  val (workersMap, factoriesMap, shiftsMap) = withModel { implicit builder =>
-    for ((factoryId, factoryIdx) <- factoryIds.zipWithIndex) {
-      withFactory(factoryId, 0, 0) { implicit scope =>
-        for (wp <- List("A", "B", "C")) {
-          val foremanId = s"$factoryId-$wp-foreman"
-          withWorker(foremanId, Set("A", "B", "C", "D", "E"))
+  val (factory, workersMap, shiftsMap) = withModel { implicit builder =>
+    for (wp <- List("A", "B", "C")) {
+      val foremanId = s"$wp-foreman"
+      withWorker(foremanId, Set("A", "B", "C", "D", "E"))
 
-          val workersInShift = (1 to scenarioParams.workersPerWorkplaceCount).map(idx => f"$factoryId%s-$wp%s-worker-$idx%03d")
-          for (id <- workersInShift) {
-            withWorker(id, Set("A", "B", "C", "D", "E"))
-          }
-
-          val workersOnStandby = (1 to scenarioParams.workersOnStandbyCount).map(idx => f"$factoryId%s-standby-$idx%03d")
-
-          for (id <- workersOnStandby) {
-            withWorker(id, Set("A", "B", "C", "D", "E"))
-          }
-
-          withShift(
-            wp,
-            startTimestamp plusHours 1,
-            startTimestamp plusHours 9,
-            wp,
-            foremanId,
-            workersInShift.toList,
-            workersOnStandby.toList,
-            workersInShift.map(wrk => (wrk, "A")).toMap
-          )
-        }
+      val workersInShift = (1 to scenarioParams.workersPerWorkplaceCount).map(idx => f"$wp%s-worker-$idx%03d")
+      for (id <- workersInShift) {
+        withWorker(id, Set("A", "B", "C", "D", "E"))
       }
+
+      val workersOnStandby = (1 to scenarioParams.workersOnStandbyCount).map(idx => f"standby-$idx%03d")
+
+      for (id <- workersOnStandby) {
+        withWorker(id, Set("A", "B", "C", "D", "E"))
+      }
+
+      withShift(
+        wp,
+        startTimestamp plusHours 1,
+        startTimestamp plusHours 9,
+        wp,
+        foremanId,
+        workersInShift.toList,
+        workersOnStandby.toList,
+        workersInShift.map(wrk => (wrk, "A")).toMap
+      )
     }
   }
 
@@ -299,15 +293,14 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
     }
   }
 
-  val factoryTeams = factoriesMap.values.map(factory => root(new FactoryTeam(factory)))
+  val factoryTeam = root(new FactoryTeam(factory))
 }
 
 object TestScenario {
-  def createScenarioSpec(factoriesCount: Int, workersPerWorkplaceCount: Int, workersOnStandbyCount: Int, startTime: LocalDateTime) = {
+  def createScenarioSpec(workersPerWorkplaceCount: Int, workersOnStandbyCount: Int, startTime: LocalDateTime) = {
     TestScenarioSpec(
       workersPerWorkplaceCount = workersPerWorkplaceCount,
       workersOnStandbyCount = workersOnStandbyCount,
-      factoriesCount = factoriesCount,
       startTime = startTime
     )
   }

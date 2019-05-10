@@ -12,4 +12,9 @@ webpackConf.output = {
     path: path.resolve(__dirname, 'dist')
 };
 
+webpackConf.module.rules.push({
+    test: /\.svg$/,
+    use: 'raw-loader'
+});
+
 module.exports = webpackConf;

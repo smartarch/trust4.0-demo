@@ -10,9 +10,8 @@ import trust40.k4case.Simulation.{Events, Reset, Step}
 import scala.collection.mutable
 import scala.util.Random
 
-abstract class AbstractSimulatedWorker(val person: String, val startTime: LocalDateTime) extends Actor {
+abstract class AbstractSimulatedWorker(val person: String, val startPosition: Position, val startTime: LocalDateTime) extends Actor {
   protected val log = Logging(context.system, this)
-  def startPosition = Position(0, 90)
 
   private abstract class Action(val startTime: LocalDateTime, val duration: Duration, val startPosition: Position, val targetPosition: Position) {
     def getEvents(currentTime: LocalDateTime): List[ScenarioEvent] = List()
@@ -112,13 +111,13 @@ abstract class AbstractSimulatedWorker(val person: String, val startTime: LocalD
   private def lastActionTime = if (futureActions.nonEmpty) futureActions.last.startTime.plus(futureActions.last.duration) else currentTime
   private def lastActionPosition = if (futureActions.nonEmpty) futureActions.last.targetPosition else currentPosition
 
-  protected def move(x: Int, y: Int, maxPace: Double = 10 /* seconds / position unit */, minPace: Double = 12): Unit = {
+  protected def move(id: String, maxPace: Double = 10 /* seconds / position unit */, minPace: Double = 12): Unit = {
+    val targetPosition = FactoryMap(id)
     val startPosition = lastActionPosition
-    val xDistance = startPosition.x - x
-    val yDistance = startPosition.y - y
+    val xDistance = startPosition.x - targetPosition.x
+    val yDistance = startPosition.y - targetPosition.y
     val distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance)
     val duration = Duration.ofMillis((distance * (maxPace + random.nextDouble() * (minPace - maxPace)) * 1000).toInt)
-    val targetPosition = Position(x, y)
 
     futureActions += new MoveAction(lastActionTime, duration, startPosition, targetPosition)
   }
@@ -175,96 +174,42 @@ abstract class AbstractSimulatedWorker(val person: String, val startTime: LocalD
 }
 
 
-object SimulatedWorkerInShiftA {
-  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftA(person, startTime))
+object SimulatedWorkerInShift {
+  def props(person: String, wpId: String, inShiftId: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShift(person, wpId, inShiftId, startTime))
 }
 
-class SimulatedWorkerInShiftA(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
+// Pos-InWorkPlace1-1, Pos-JunctionToWorkPlace1and2, Pos-InFrontOfMainGate, Pos-Init3-2, Pos-Init2-1, Pos-InWorkPlace2-3, Pos-Gate1,
+// Pos-InFrontOfGate2, Pos-InWorkPlace3-3, Pos-BottomRight, Pos-Init1-3, Pos-InWorkPlace3-1, Pos-InFrontOfGate3, Pos-Init3-1, Pos-InWorkPlace2-1, Pos-Gate3,
+// Pos-Dispenser, Pos-MainGate, Pos-InWorkPlace1-3, Pos-Init1-2, Pos-Init2-3, Pos-InWorkPlace3-2, Pos-InitStandby-1, Pos-TopLeft, Pos-InWorkPlace1-2, Pos-Init1-1,
+// Pos-InWorkPlace2-2, Pos-Init2-2, Pos-Gate2, Pos-InFrontOfGate1, Pos-Init3-3
+
+class SimulatedWorkerInShift(person: String, val wpId: String, val inShiftId: String, startTime: LocalDateTime)
+  extends AbstractSimulatedWorker(person, FactoryMap(s"Init-$wpId$inShiftId"), startTime) {
+
   override protected def generateInitialActions(): Unit = {
     waitRandom(29 minutes, 39 minutes)
 
-    move(20, 90)
+    move("InFrontOfMainGate")
+    move("MainGate")
     accessDoor()
-    move(30, 90)
+    move("Dispenser")
     accessDispenser()
-    move(30, 50)
-    move(40, 50)
+    move(s"JunctionToWorkPlaceGate-$wpId")
+    move(s"InFrontOfWorkPlaceGate-$wpId")
+    move(s"WorkPlaceGate-$wpId")
     accessDoor()
-    move(50, 50)
+    move(s"InWorkPlace-$wpId$inShiftId")
 
     waitTillAfterStart(9 hours)
 
     waitRandom(2 minutes, 5 minutes)
-    move(40, 50)
+    move(s"WorkPlaceGate-$wpId")
     accessDoor()
-    move(30, 50)
-    move(30, 90)
-    move(20, 90)
+    move(s"InFrontOfWorkPlaceGate-$wpId")
+    move(s"JunctionToWorkPlaceGate-$wpId")
+    move("MainGate")
     accessDoor()
-    move(0, 90)
-  }
-}
-
-
-object SimulatedWorkerInShiftB {
-  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftB(person, startTime))
-}
-
-class SimulatedWorkerInShiftB(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
-  override protected def generateInitialActions(): Unit = {
-    waitRandom(23 minutes, 33 minutes)
-
-    move(20, 90)
-    accessDoor()
-    move(30, 90)
-    accessDispenser()
-    move(110, 90)
-    move(110, 50)
-    move(120, 50)
-    accessDoor()
-    move(130, 50)
-
-    waitTillAfterStart(9 hours)
-
-    waitRandom(2 minutes, 5 minutes)
-    move(120, 50)
-    accessDoor()
-    move(110, 50)
-    move(110, 90)
-    move(20, 90)
-    accessDoor()
-    move(0, 90)
-  }
-}
-
-
-object SimulatedWorkerInShiftC {
-  def props(person: String, startTime: LocalDateTime) = Props(new SimulatedWorkerInShiftC(person, startTime))
-}
-
-class SimulatedWorkerInShiftC(person: String, startTime: LocalDateTime) extends AbstractSimulatedWorker(person, startTime) {
-  override protected def generateInitialActions(): Unit = {
-    waitRandom(25 minutes, 35 minutes)
-
-    move(20, 90)
-    accessDoor()
-    move(30, 90)
-    accessDispenser()
-    move(110, 90)
-    move(110, 100)
-    move(120, 100)
-    accessDoor()
-    move(130, 100)
-
-    waitTillAfterStart(9 hours)
-
-    waitRandom(2 minutes, 5 minutes)
-    move(120, 100)
-    accessDoor()
-    move(110, 100)
-    move(110, 90)
-    move(20, 90)
-    accessDoor()
-    move(0, 90)
+    move("InFrontOfMainGate")
+    move(s"Init-$wpId$inShiftId")
   }
 }

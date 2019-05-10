@@ -12,6 +12,10 @@ import styles from "./FactoryMap.scss";
 import axios from "../../ivis-core/client/src/lib/axios";
 import {getUrl} from "../../ivis-core/client/src/lib/urls";
 import moment from "moment";
+import {SVG} from "../../ivis-core/client/src/ivis/SVG";
+import factorySvg from "../images/factory.svg";
+
+console.log(factorySvg);
 
 const State = {
     // This has to be aligned with enforcer/src/main/scala/trust40/k4case/Timeline.scala
@@ -197,6 +201,9 @@ const minorStepsInRefetchPeriod = 5;
                     }
                     <Button className={`btn-danger ${styles.controlButton}`} icon="stop" onClickAsync={::this.stop} disabled={playState === State.START}/>
                     <span className={styles.timestamp}>{tsFormatted}</span>
+                </div>
+                <div>
+                    <SVG source={factorySvg}/>
                 </div>
             </Panel>
         );

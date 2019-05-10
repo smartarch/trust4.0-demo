@@ -8,6 +8,7 @@ mainClass in (Compile, run) := Some("trust40.Main")
 
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % "2.12.8",
+  "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
   "org.choco-solver" % "choco-solver" % "4.10.0",
   "com.typesafe.akka" %% "akka-actor" % "2.5.22",
   "com.typesafe.akka" %% "akka-stream" % "2.5.22",

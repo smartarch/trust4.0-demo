@@ -12,86 +12,56 @@ trait ModelGenerator {
 
     private class ModelBuilder {
       val workersMap = mutable.Map.empty[String, Worker]
-      val factoriesMap = mutable.Map.empty[String, Factory]
       val shiftsMap = mutable.Map.empty[String, Shift]
-      val workPlacesMap = mutable.Map.empty[String, WorkPlace]
-    }
 
-    private class FactoryScope(val builder: ModelBuilder, val factoryId: String, val offsetX: Int, val offsetY: Int) {
-      private def init(): Unit = {
-        val positions = for {
-          x <- (30 + offsetX).to(170 + offsetX, 10)
-          y <- (10 + offsetY).to(110 + offsetY, 10)
-        } yield Position(x, y)
-
-        val workplaces = List(
-          new WorkPlace(
-            factoryId + "-A",
-            List(Position(50 + offsetX, 50 + offsetY)),
-            new Door(factoryId + "-door", Position(40 + offsetX, 50 + offsetY))
-          ),
-          new WorkPlace(
-            factoryId + "-B",
-            List(Position(130 + offsetX, 50 + offsetY)),
-            new Door(factoryId + "-door", Position(120 + offsetX, 50 + offsetY))
-          ),
-          new WorkPlace(
-            factoryId + "-C",
-            List(Position(130 + offsetX, 100 + offsetY)),
-            new Door(factoryId + "-door", Position(120 + offsetX, 100 + offsetY))
-          )
+      val workplaces = for (wpId <- List("A", "B", "C"))
+        yield new WorkPlace(
+          s"workplace-$wpId",
+          new Area(FactoryMap(s"Workplace-$wpId-TL"), FactoryMap(s"Workplace-$wpId-BR")),
+          new Door(s"gate-$wpId")
         )
 
-        builder.workPlacesMap ++= workplaces.map(wp => (wp.id, wp))
+      val workPlacesMap = mutable.Map(workplaces.map(x => x.id -> x): _*)
 
-        builder.factoriesMap(factoryId) = new Factory(
-          factoryId,
-          positions.toList,
-          new Door(factoryId + "-door", Position(20 + offsetX, 90 + offsetY)),
-          new Dispenser(factoryId + "-dispenser", Position(30 + offsetX, 90 + offsetY)),
-          workplaces
-        )
-      }
+
+      val factory = new Factory(
+      "factory",
+        new Area(FactoryMap("Factory-TL"), FactoryMap("Factory-BR")),
+        new Door("main-gate"),
+        new Dispenser("dispenser"),
+        workplaces
+      )
 
       def addWorker(id: String, caps: Set[String]): Unit = {
-        builder.workersMap(id) = new Worker(id, Position(0 + offsetX, 90 + offsetY), caps, false)
+        workersMap(id) = new Worker(id, null, caps, false)
       }
 
       def addShift(id: String, startTime: LocalDateTime, endTime: LocalDateTime, workPlace: String, foreman: String, workers: List[String], standbys: List[String], assignments: Map[String, String]): Unit = {
-        val gid = factoryId + "-" + id
 
-        builder.shiftsMap(gid) = new Shift(
-          gid,
+        shiftsMap(id) = new Shift(
+          id,
           startTime,
           endTime,
-          builder.workPlacesMap(factoryId + "-" + workPlace),
-          builder.workersMap(foreman),
-          workers.map(wrk => builder.workersMap(wrk)),
-          standbys.map(wrk => builder.workersMap(wrk)),
-          assignments.map(keyVal => (builder.workersMap(keyVal._1) -> keyVal._2))
+          workPlacesMap(workPlace),
+          workersMap(foreman),
+          workers.map(wrk => workersMap(wrk)),
+          standbys.map(wrk => workersMap(wrk)),
+          assignments.map(keyVal => (workersMap(keyVal._1) -> keyVal._2))
         )
       }
-
-      init()
     }
 
+    def withWorker(id: String, caps: Set[String])(implicit ms: ModelBuilder): Unit = ms.addWorker(id, caps)
 
-    def withFactory(id: String, offsetX: Int, offsetY: Int)(ops: FactoryScope => Unit)(implicit builder: ModelBuilder): Unit = {
-      val ms = new FactoryScope(builder, id, offsetX, offsetY)
-      ops(ms)
-    }
-
-    def withWorker(id: String, caps: Set[String])(implicit ms: FactoryScope): Unit = ms.addWorker(id, caps)
-
-    def withShift(id: String, startTime: LocalDateTime, endTime: LocalDateTime, workPlace: String, foreman: String, workers: List[String], standbys: List[String], assignments: Map[String, String])(implicit ms: FactoryScope): Unit =
+    def withShift(id: String, startTime: LocalDateTime, endTime: LocalDateTime, workPlace: String, foreman: String, workers: List[String], standbys: List[String], assignments: Map[String, String])(implicit ms: ModelBuilder): Unit =
       ms.addShift(id, startTime, endTime, workPlace, foreman, workers, standbys, assignments)
 
 
-    def withModel(ops: ModelBuilder => Unit): (Map[String, Worker], Map[String, Factory], Map[String, Shift]) = {
+    def withModel(ops: ModelBuilder => Unit): (Factory, Map[String, Worker], Map[String, Shift]) = {
       val builder = new ModelBuilder
       ops(builder)
 
-      (builder.workersMap.toMap, builder.factoriesMap.toMap, builder.shiftsMap.toMap)
+      (builder.factory, builder.workersMap.toMap, builder.shiftsMap.toMap)
     }
   }
 }

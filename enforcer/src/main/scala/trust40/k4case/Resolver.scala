@@ -46,29 +46,30 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
 
     val perms = mutable.ListBuffer.empty[(String, String, String)]
 
-    for (factoryTeam <- scenario.factoryTeams) {
-      factoryTeam.init()
-      factoryTeam.solverLimitTime(solverLimitTime)
-      factoryTeam.solve()
+    val factoryTeam = scenario.factoryTeam
+    factoryTeam.init()
+    factoryTeam.solverLimitTime(solverLimitTime)
+    factoryTeam.solve()
 
-      if (factoryTeam.exists) {
-        // log.info("Utility: " + shiftTeams.instance.solutionUtility)
-        // log.info(shiftTeams.instance.toString)
+    if (factoryTeam.exists) {
+      // log.info("Utility: " + shiftTeams.instance.solutionUtility)
+      // log.info(shiftTeams.instance.toString)
 
-        factoryTeam.commit()
+      factoryTeam.commit()
 
-        for (action <- factoryTeam.actions) {
-          println(action)
-          action match {
-            case AllowAction(subj: WithId, action, obj: WithId) =>
-              perms += ((subj.id, action, obj.id))
-            case _ =>
-          }
+      for (action <- factoryTeam.actions) {
+        println(action)
+        action match {
+          case AllowAction(subj: WithId, action, obj: WithId) =>
+            perms += ((subj.id, action, obj.id))
+          case _ =>
         }
-
-      } else {
-        log.error("Error. No solution exists.")
       }
+
+      // call to KIT <- factoryTeam.actions ... => consistent set of action
+
+    } else {
+      log.error("Error. No solution exists.")
     }
 
     log.info("Resolver finished")
