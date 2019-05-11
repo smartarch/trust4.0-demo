@@ -14,14 +14,14 @@ trait ModelGenerator {
       val workersMap = mutable.Map.empty[String, Worker]
       val shiftsMap = mutable.Map.empty[String, Shift]
 
-      val workplaces = for (wpId <- List("A", "B", "C"))
-        yield new WorkPlace(
-          s"workplace-$wpId",
-          new Area(FactoryMap(s"Workplace-$wpId-TL"), FactoryMap(s"Workplace-$wpId-BR")),
-          new Door(s"gate-$wpId")
-        )
-
-      val workPlacesMap = mutable.Map(workplaces.map(x => x.id -> x): _*)
+      val workPlacesMap = Map((
+        for (wpId <- List("A", "B", "C"))
+          yield wpId -> new WorkPlace(
+            s"workplace-$wpId",
+            new Area(FactoryMap(s"WorkPlace-$wpId-TL"), FactoryMap(s"WorkPlace-$wpId-BR")),
+            new Door(s"gate-$wpId")
+          )
+        ): _*)
 
 
       val factory = new Factory(
@@ -29,7 +29,7 @@ trait ModelGenerator {
         new Area(FactoryMap("Factory-TL"), FactoryMap("Factory-BR")),
         new Door("main-gate"),
         new Dispenser("dispenser"),
-        workplaces
+        workPlacesMap.values.toList
       )
 
       def addWorker(id: String, caps: Set[String]): Unit = {

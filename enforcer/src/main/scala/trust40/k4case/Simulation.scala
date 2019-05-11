@@ -59,9 +59,9 @@ class Simulation() extends Actor with Timers {
 
   private var workers = mutable.ListBuffer.empty[ActorRef]
   // foremen
-  workers += context.actorOf(SimulatedWorkerInShift.props(s"A-foreman", "A", "foreman", startTime), name = s"A-foreman")
-  workers += context.actorOf(SimulatedWorkerInShift.props(s"B-foreman", "B", "foreman", startTime), name = s"B-foreman")
-  workers += context.actorOf(SimulatedWorkerInShift.props(s"C-foreman", "C", "foreman", startTime), name = s"C-foreman")
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"A-foreman", "A", "F", startTime), name = s"A-foreman")
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"B-foreman", "B", "F", startTime), name = s"B-foreman")
+  workers += context.actorOf(SimulatedWorkerInShift.props(s"C-foreman", "C", "F", startTime), name = s"C-foreman")
 
   // workers
   for (idx <- 1 to scenarioSpec.workersPerWorkplaceCount) {
