@@ -10,7 +10,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 case class WorkerState(position: Position)
-case class SimulationState(time: String, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
+case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
 
 object Simulation {
   def props() = Props(new Simulation())
@@ -27,10 +27,6 @@ object Simulation {
 
   private case object TickTimer
   private case object Tick
-}
-
-class Simulation() extends Actor with Timers {
-  import Simulation._
 
   object State extends Enumeration {
     type State = Value
@@ -41,8 +37,11 @@ class Simulation() extends Actor with Timers {
     val PAUSED = Value(2)
     val END = Value(3)
   }
+}
 
-  import State._
+class Simulation() extends Actor with Timers {
+  import Simulation._
+  import Simulation.State._
 
   private val log = Logging(context.system, this)
 
@@ -135,7 +134,7 @@ class Simulation() extends Actor with Timers {
   }
 
   private def processStatus(): Unit = {
-    sender() ! SimulationState(currentTime.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), workerStates.toMap, currentPermissions)
+    sender() ! SimulationState(currentTime.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), state, workerStates.toMap, currentPermissions)
   }
 
   private def processEvents(events: List[ScenarioEvent]): Unit = {

@@ -9,3 +9,31 @@
   vertical-align: top;
   line-height: 33px;
 }
+
+.detailsHeader {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 0px;
+}
+
+.detailsSectionHeader {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 7px;
+}
+
+.detailsSection {
+  border-bottom: 1px solid #c8ced3;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.help {
+  color: #715a00;
+}
+
+.perm {
+  margin-right: 5px;
+}

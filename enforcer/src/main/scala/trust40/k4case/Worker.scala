@@ -10,7 +10,12 @@ import trust40.k4case.Simulation.{Events, Reset, Step}
 import scala.collection.mutable
 import scala.util.Random
 
+object AbstractSimulatedWorker {
+  private val random = new Random(42)
+}
+
 abstract class AbstractSimulatedWorker(val person: String, val startPosition: Position, val startTime: LocalDateTime) extends Actor {
+  import AbstractSimulatedWorker.random
   protected val log = Logging(context.system, this)
 
   private abstract class Action(val startTime: LocalDateTime, val duration: Duration, val startPosition: Position, val targetPosition: Position) {
@@ -107,11 +112,10 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
     events.toList
   }
 
-  private val random = new Random(42)
   private def lastActionTime = if (futureActions.nonEmpty) futureActions.last.startTime.plus(futureActions.last.duration) else currentTime
   private def lastActionPosition = if (futureActions.nonEmpty) futureActions.last.targetPosition else currentPosition
 
-  protected def move(id: String, maxPace: Double = 10 /* seconds / position unit */, minPace: Double = 12): Unit = {
+  protected def move(id: String, maxPace: Double = 9 /* seconds / position unit */, minPace: Double = 11): Unit = {
     val targetPosition = FactoryMap(id)
     val startPosition = lastActionPosition
     val xDistance = startPosition.x - targetPosition.x
@@ -124,7 +128,7 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
 
   protected def accessDoor(): Unit = futureActions += new AccessDoorAction(lastActionTime, lastActionPosition)
 
-  protected def accessDispenser(): Unit = futureActions += new AccessDoorAction(lastActionTime, lastActionPosition)
+  protected def accessDispenser(): Unit = futureActions += new AccessDispenserAction(lastActionTime, lastActionPosition)
 
   protected def waitRandom(minDuration: Duration, maxDuration: Duration): Unit = {
     val duration = minDuration plusSeconds random.nextInt((maxDuration minus minDuration).getSeconds().asInstanceOf[Int])
@@ -134,10 +138,10 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   protected def waitTillAfterStart(durationFromStart: Duration): Unit = {
     val startTime = lastActionTime
     val endTime = this.startTime plus durationFromStart
-    assert(startTime.isBefore(endTime))
-    val duration = Duration.between(startTime, endTime)
-
-    futureActions += new WaitAction(startTime, duration, lastActionPosition)
+    if (startTime.isBefore(endTime)) {
+      val duration = Duration.between(startTime, endTime)
+      futureActions += new WaitAction(startTime, duration, lastActionPosition)
+    }
   }
 
   protected implicit class EventDuration(value: Int) {
@@ -187,15 +191,18 @@ class SimulatedWorkerInShift(person: String, val wpId: String, val inShiftId: St
   extends AbstractSimulatedWorker(person, FactoryMap(s"Init-$wpId$inShiftId"), startTime) {
 
   override protected def generateInitialActions(): Unit = {
-    waitRandom(29 minutes, 39 minutes)
+    waitRandom(0 minutes, 10 minutes)
 
     move("InFrontOfMainGate")
+    waitTillAfterStart(20 minutes)
     move("MainGate")
     accessDoor()
     move("Dispenser")
+    waitTillAfterStart(30 minutes)
     accessDispenser()
     move(s"JunctionToWorkPlaceGate-$wpId")
     move(s"InFrontOfWorkPlaceGate-$wpId")
+    waitTillAfterStart(40 minutes)
     move(s"WorkPlaceGate-$wpId")
     accessDoor()
     move(s"InWorkPlace-$wpId$inShiftId")

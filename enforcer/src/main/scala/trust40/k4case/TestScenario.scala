@@ -24,6 +24,11 @@ trait WithId {
 
 class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGenerator {
 
+  implicit class RichLocalDateTime(val self: LocalDateTime) {
+    def isEqualOrBefore(other: LocalDateTime) = !self.isAfter(other)
+    def isEqualOrAfter(other: LocalDateTime) = !self.isBefore(other)
+  }
+
   val startTimestamp = scenarioParams.startTime
   var now = startTimestamp
 
@@ -165,8 +170,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         name(s"AccessToFactory")
 
         situation {
-          (now isAfter (shift.startTime minusMinutes 30)) &&
-            (now isBefore (shift.endTime plusMinutes 30))
+          (now isEqualOrAfter (shift.startTime minusMinutes 45)) &&
+            (now isEqualOrBefore (shift.endTime plusMinutes 45))
         }
 
         allow(shift.foreman, "enter", shift.workPlace.factory)
@@ -177,21 +182,21 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         name(s"AccessToDispenser")
 
         situation {
-          (now isAfter (shift.startTime minusMinutes 15)) &&
-            (now isBefore shift.endTime)
+          (now isEqualOrAfter (shift.startTime minusMinutes 40)) &&
+            (now isEqualOrBefore shift.endTime)
         }
 
         allow(assignedWorkers, "use", shift.workPlace.factory.dispenser)
       }
 
-      object AccessToWorkplace extends Ensemble { // Kdyz se constraints vyhodnoti na LogicalBoolean, tak ten ensemble vubec nezatahujeme solver modelu a poznamename si, jestli vysel nebo ne
+      object AccessToWorkplace extends Ensemble {
         name(s"AccessToWorkplace")
 
         val workersWithHeadGear = (shift.foreman :: assignedWorkers).filter(wrk => wrk.hasHeadGear)
 
         situation {
-          (now isAfter (shift.startTime minusMinutes 30)) &&
-            (now isBefore (shift.endTime plusMinutes 30))
+          (now isEqualOrAfter (shift.startTime minusMinutes 25)) &&
+            (now isEqualOrBefore (shift.endTime plusMinutes 25))
         }
 
         allow(workersWithHeadGear, "enter", shift.workPlace)
@@ -205,7 +210,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         val workersThatAreLate = assignedWorkers.filter(wrk => !(wrk isAt shift.workPlace.factory))
 
         situation {
-          now isAfter (shift.startTime minusMinutes 20)
+          now isEqualOrAfter (shift.startTime minusMinutes 25)
         }
 
         workersThatAreLate.foreach(wrk => notify(shift.foreman, WorkerPotentiallyLateNotification(shift, wrk)))
@@ -221,7 +226,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         val workersThatAreLate = assignedWorkers.filter(wrk => !(wrk isAt shift.workPlace.factory))
 
         situation {
-          now isAfter (shift.startTime minusMinutes 15)
+          now isEqualOrAfter (shift.startTime minusMinutes 15)
         }
 
         notify(workersThatAreLate, AssignmentCanceledNotification(shift))
@@ -245,8 +250,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         val selectedStandbys = unionOf(standbyAssignments.map(_.standby))
 
         situation {
-          (now isAfter (shift.startTime minusMinutes 15)) &&
-          (now isBefore shift.endTime)
+          (now isEqualOrAfter (shift.startTime minusMinutes 15)) &&
+          (now isEqualOrBefore shift.endTime)
         }
 
         constraints {
@@ -261,7 +266,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
           name(s"NoAccessToPersonalDataExceptForLateWorkers")
 
           val workersPotentiallyLate =
-              if ((now isAfter (shift.startTime minusMinutes 20)) && (now isBefore shift.startTime))
+              if ((now isEqualOrAfter (shift.startTime minusMinutes 25)) && (now isEqualOrBefore shift.startTime))
                   assignedWorkers.filter(wrk => !(wrk isAt shift.workPlace.factory))
               else
                   Nil

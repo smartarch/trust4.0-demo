@@ -59,7 +59,7 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     val stepNo = nextStepNo
     nextStepNo += 1
 
-    if (stepNo % 60 == 0) {
+    if (stepNo % 6 == 0) {
       resolveNeeded = true
     }
 
