@@ -1,5 +1,7 @@
 package designtimeDecisionMaker;
 
+import java.util.Objects;
+
 public class ReasonedAllowRule extends AllowRule {
     private final String reason;
 
@@ -10,5 +12,19 @@ public class ReasonedAllowRule extends AllowRule {
 
     public final String getReason() {
         return reason;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ReasonedAllowRule that = (ReasonedAllowRule) o;
+        return Objects.equals(reason, that.reason);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), reason);
     }
 }

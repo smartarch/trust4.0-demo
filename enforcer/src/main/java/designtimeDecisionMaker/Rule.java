@@ -8,6 +8,9 @@ public abstract class Rule {
     private final String object;
 
     public Rule(String subject, String verb, String object) {
+        Objects.isNull(subject);
+        Objects.isNull(verb);
+        Objects.isNull(object);
         this.subject = subject;
         this.verb = verb;
         this.object = object;
