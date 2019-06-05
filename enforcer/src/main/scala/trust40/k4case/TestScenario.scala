@@ -215,7 +215,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
         workersThatAreLate.foreach(wrk => notify(shift.foreman, WorkerPotentiallyLateNotification(shift, wrk)))
 
-        allow(shift.foreman, "read.personalData.phoneNo", workersThatAreLate)
+        allow(shift.foreman, "read.personalData.phoneNo", workersThatAreLate) // FIX to state the sub action on the subject
         allow(shift.foreman, "read.distanceToWorkPlace", workersThatAreLate)
       }
 
