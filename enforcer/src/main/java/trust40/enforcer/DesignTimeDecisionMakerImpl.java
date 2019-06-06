@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DesignTimeDecisionMakerImpl implements DesignTimeDecisionMaker {
-    private static final String PATH_TO_PRIVACY_LEVELS = "/home/majuwa/test.csv";
+    private static final String PATH_TO_PRIVACY_LEVELS = "";
 
     @Override
     public Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules,
