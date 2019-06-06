@@ -1,7 +1,14 @@
-package designtimeDecisionMaker;
+package trust40.enforcer;
+
+import trust40.enforcer.rules.AllowRule;
+import trust40.enforcer.rules.DenyRule;
+import trust40.enforcer.rules.ReasonedAllowRule;
 
 import java.util.Collection;
 
+/**
+ *
+ */
 public interface DesignTimeDecisionMaker {
 
     /*
@@ -39,5 +46,12 @@ public interface DesignTimeDecisionMaker {
         1: ["C-foreman", "read", "C-worker-001.personalData", SENSITIVE]
     ]
  */
-    Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules, Collection<DenyRule> denyRules);
+
+    /**
+     * This methods calculates the current validate allow rules. Therefore it takes the a Collection of the current {@link AllowRule}s and a Collection of the current {@link DenyRule}s
+     * @param allowRules Collectionf of {@link AllowRule}
+     * @param denyRules Collection of {@link DenyRule}
+     * @return Collection of {@link ReasonedAllowRule} or null in case of an internal error
+     */
+    Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules, Collection<DenyRule> denyRules) throws NullPointerException;
 }
