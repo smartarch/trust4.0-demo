@@ -5,7 +5,7 @@ package trust40.enforcer;
  */
 public enum PrivacyLevel {
     /* The order of appearing describes the order of the enumeration */
-    PUBLIC("public"), SENSITIVE("sensitive"), OFFICIAL("official"), PRIVATE("private");
+    PUBLIC("public"), INTERNAL_USE("internal use"), SENSITIVE("sensitive"), HIGHLY_SENSITIVE("highly sensitive");
     private final String name;
 
     PrivacyLevel(String name) {

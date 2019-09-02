@@ -4,13 +4,13 @@ import trust40.enforcer.rules.AllowRule;
 import trust40.enforcer.rules.DenyRule;
 import trust40.enforcer.rules.ReasonedAllowRule;
 
+import java.io.IOException;
 import java.util.Collection;
 
 /**
  *
  */
 public interface DesignTimeDecisionMaker {
-
     /*
     Sample input:
 
@@ -54,4 +54,6 @@ public interface DesignTimeDecisionMaker {
      * @return Collection of {@link ReasonedAllowRule} or null in case of an internal error
      */
     Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules, Collection<DenyRule> denyRules) throws NullPointerException;
+    void reload() throws IOException;
+    void setPrivacyLevelFile(String path);
 }
