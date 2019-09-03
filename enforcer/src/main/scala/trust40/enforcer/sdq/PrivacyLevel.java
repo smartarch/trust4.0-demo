@@ -1,4 +1,4 @@
-package trust40.enforcer;
+package trust40.enforcer.sdq;
 
 /**
  * Enum for handling the privacy level

@@ -1,4 +1,4 @@
-package trust40.enforcer.io;
+package trust40.enforcer.sdq.io;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -15,7 +15,6 @@ import scala.io.StdIn
 object Main extends MarshallersSupport {
   def main(args: Array[String]) {
     FactoryMap.init()
-
     implicit val system = ActorSystem("trust40-enforcer")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher

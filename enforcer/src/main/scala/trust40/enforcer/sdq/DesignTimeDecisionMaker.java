@@ -1,8 +1,8 @@
-package trust40.enforcer;
+package trust40.enforcer.sdq;
 
-import trust40.enforcer.rules.AllowRule;
-import trust40.enforcer.rules.DenyRule;
-import trust40.enforcer.rules.ReasonedAllowRule;
+import trust40.enforcer.sdq.rules.AllowRule;
+import trust40.enforcer.sdq.rules.DenyRule;
+import trust40.enforcer.sdq.rules.ReasonedAllowRule;
 
 import java.io.IOException;
 import java.util.Collection;

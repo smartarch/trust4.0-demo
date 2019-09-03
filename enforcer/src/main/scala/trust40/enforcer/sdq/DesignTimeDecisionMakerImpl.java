@@ -1,4 +1,4 @@
-package trust40.enforcer;
+package trust40.enforcer.sdq;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -8,10 +8,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
-import trust40.enforcer.io.PrivacyLoader;
-import trust40.enforcer.rules.AllowRule;
-import trust40.enforcer.rules.DenyRule;
-import trust40.enforcer.rules.ReasonedAllowRule;
+import trust40.enforcer.sdq.io.PrivacyLoader;
+import trust40.enforcer.sdq.rules.AllowRule;
+import trust40.enforcer.sdq.rules.DenyRule;
+import trust40.enforcer.sdq.rules.ReasonedAllowRule;
 
 public class DesignTimeDecisionMakerImpl implements DesignTimeDecisionMaker {
 	private ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -43,7 +43,7 @@ public class DesignTimeDecisionMakerImpl implements DesignTimeDecisionMaker {
 					.filter(e -> privacyMapping.containsKey(e.getObject())).collect(Collectors.toSet());
 			Collection<AllowRule> removeableRules = allowRules.parallelStream()
 					.filter(allowRule -> applicableDenyRules.stream().filter(denyRule -> allowRule.equalRule(denyRule))
-							.anyMatch(e -> EnumSet.range(PrivacyLevel.PUBLIC, e.getPrivacyLevel())
+							.anyMatch(e -> EnumSet.range(e.getPrivacyLevel(),PrivacyLevel.HIGHLY_SENSITIVE)
 									.contains(privacyMapping.get(e.getObject()))))
 					.collect(Collectors.toList());
 			allowRules.removeAll(removeableRules);

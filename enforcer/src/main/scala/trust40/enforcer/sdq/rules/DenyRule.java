@@ -1,6 +1,6 @@
-package trust40.enforcer.rules;
+package trust40.enforcer.sdq.rules;
 
-import trust40.enforcer.PrivacyLevel;
+import trust40.enforcer.sdq.PrivacyLevel;
 
 import java.util.Objects;
 
@@ -9,7 +9,8 @@ public class DenyRule extends Rule {
 
     public DenyRule(String subject, String action, String object, PrivacyLevel privacyLevel) {
         super(subject, action, object);
-        Objects.isNull(privacyLevel);
+        if(privacyLevel == null)
+        	throw new IllegalArgumentException("Privacylevel can't be null");
         this.privacyLevel = privacyLevel;
     }
 
@@ -32,5 +33,9 @@ public class DenyRule extends Rule {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), privacyLevel);
+    }
+    @Override
+    public String toString() {
+    	return "[" + this.getSubject() + " " + this.getAction() + " " + this.getObject() + " " + getPrivacyLevel() + "]";
     }
 }

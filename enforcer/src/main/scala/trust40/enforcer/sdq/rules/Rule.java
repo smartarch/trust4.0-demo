@@ -1,4 +1,4 @@
-package trust40.enforcer.rules;
+package trust40.enforcer.sdq.rules;
 
 import java.util.Objects;
 
@@ -8,9 +8,12 @@ public abstract class Rule {
     private final String object;
 
     public Rule(String subject, String action, String object) {
-        Objects.isNull(subject);
-        Objects.isNull(action);
-        Objects.isNull(object);
+    	if(subject == null)
+    		throw new IllegalArgumentException("subject is null");
+    	if(action == null)
+    		throw new IllegalArgumentException("subject is null");
+    	if(object == null)
+    		throw new IllegalArgumentException("subject is null");
         this.subject = subject;
         this.action = action;
         this.object = object;

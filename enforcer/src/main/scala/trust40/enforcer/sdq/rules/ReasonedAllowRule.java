@@ -1,4 +1,4 @@
-package trust40.enforcer.rules;
+package trust40.enforcer.sdq.rules;
 
 import java.util.Objects;
 

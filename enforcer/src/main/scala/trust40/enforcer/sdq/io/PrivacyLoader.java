@@ -1,11 +1,10 @@
-package trust40.enforcer.io;
+package trust40.enforcer.sdq.io;
 
-import trust40.enforcer.PrivacyLevel;
+import trust40.enforcer.sdq.PrivacyLevel;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -18,7 +17,8 @@ public class PrivacyLoader extends CSVLoader {
     }
 
     private Map<String, PrivacyLevel> createMap(String[][] privacyMap) {
-        Objects.isNull(privacyMap);
+        if(privacyMap == null)
+        	throw new IllegalArgumentException("Privacy Map can't be null");
         if (privacyMap[0].length != 2)
             throw new IllegalArgumentException("Size of 2d dimension needs to be 2");
         return Arrays.stream(privacyMap)
