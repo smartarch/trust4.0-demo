@@ -61,7 +61,7 @@ public interface DesignTimeDecisionMaker {
      */
     void reload() throws IOException;
     /**
-     *
+     * Sets a new PrivacyLevel file. It does not automatically reloads it
      * @param path Path to the PrivacyLevel file
      */
     void setPrivacyLevelFile(String path);
