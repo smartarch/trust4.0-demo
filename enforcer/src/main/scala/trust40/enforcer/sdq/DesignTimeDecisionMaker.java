@@ -54,6 +54,15 @@ public interface DesignTimeDecisionMaker {
      * @return Collection of {@link ReasonedAllowRule} or null in case of an internal error
      */
     Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules, Collection<DenyRule> denyRules) throws NullPointerException;
+
+    /**
+     * Reloads the privacyLevel File
+     * @throws IOException
+     */
     void reload() throws IOException;
+    /**
+     *
+     * @param path Path to the PrivacyLevel file
+     */
     void setPrivacyLevelFile(String path);
 }
