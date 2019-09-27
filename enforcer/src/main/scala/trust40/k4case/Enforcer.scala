@@ -4,11 +4,10 @@ import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
-import trust40.k4case.Resolver.Resolve
+import trust40.k4case.Resolver.{Resolve, ResolverResult}
 
 import scala.collection.mutable
-
-import Simulation.{Step, Reset, Permissions}
+import Simulation.{Notifications, Permissions, Reset, Step}
 
 object Enforcer {
   def props(resolver: ActorRef) = Props(new Enforcer(resolver))
@@ -30,7 +29,8 @@ class Enforcer(val resolver: ActorRef) extends Actor {
   private var resolveNeeded: Boolean = _
 
   private var currentEpoch: Int = _
-  private var currentPermissions: List[(String, String, String)] = _
+  private var currentPermissions: List[Permission] = _
+  private val currentNotifications: mutable.Set[ComponentNotification] = mutable.Set.empty[ComponentNotification]
 
   private def processReset(epoch: Int): Unit = {
     currentEpoch = epoch
@@ -42,17 +42,23 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     nextStepNo = 0
 
     currentPermissions = List()
+    currentNotifications.clear()
   }
 
   private def processEvents(events: List[ScenarioEvent]): Unit = {
     eventsSinceLastResolve ++= events
   }
 
-  private def processPermissions(permissions: List[(String, String, String)]): Unit = {
+  private def processResolverResult(permissions: List[Permission], notifications: List[ComponentNotification]): Unit = {
     resolving = false
     currentPermissions = permissions
 
-    context.parent ! Permissions(currentEpoch, permissions)
+    for (notif <- notifications) {
+      currentNotifications += notif
+    }
+
+    context.parent ! Permissions(currentEpoch, currentPermissions)
+    context.parent ! Notifications(currentEpoch, currentNotifications.toList)
   }
 
   private def processStep(currentTime: LocalDateTime): Unit = {
@@ -79,8 +85,8 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     case Events(events) => processEvents(events)
     case Step(currentTime) => processStep(currentTime)
 
-    case Permissions(epoch, permissions) =>
-      if (currentEpoch == epoch) processPermissions(permissions)
+    case ResolverResult(epoch, permissions, notifications) =>
+      if (currentEpoch == epoch) processResolverResult(permissions, notifications)
   }
 
 }

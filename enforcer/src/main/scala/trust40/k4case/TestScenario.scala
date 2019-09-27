@@ -7,6 +7,7 @@ import trust40.enforcer.tcof._
 case class TestScenarioSpec(
                              workersPerWorkplaceCount: Int,
                              workersOnStandbyCount: Int,
+                             workersLateCount: Int,
                              startTime: LocalDateTime
                            )
 
@@ -22,6 +23,20 @@ trait WithId {
   def id: String
 }
 
+
+case object Use extends PermissionVerb {
+  override def toString = "use"
+}
+
+case object Enter extends PermissionVerb {
+  override def toString = "enter"
+}
+
+case class Read(field: String) extends PermissionVerb {
+  override def toString = s"read($field)"
+}
+
+
 class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGenerator {
 
   implicit class RichLocalDateTime(val self: LocalDateTime) {
@@ -32,11 +47,10 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   val startTimestamp = scenarioParams.startTime
   var now = startTimestamp
 
-  case class WorkerPotentiallyLateNotification(shift: Shift, worker: Worker) extends Notification
+  case class WorkerPotentiallyLateNotification(shift: Shift, worker: Worker) extends Notification("workerPotentiallyLate", List(shift.id, worker.name))
 
-  case class AssignmentCanceledNotification(shift: Shift) extends Notification
-  case class StandbyNotification(shift: Shift) extends Notification
-  case class WorkerReplacedNotification(shift: Shift, worker: Worker) extends Notification
+  case class AssignmentCanceledNotification(shift: Shift) extends Notification("assignmentCanceled", List(shift.id))
+  case class WorkAssignedNotification(shift: Shift, replacedWorker: Worker) extends Notification("workAssigned", List(shift.id, replacedWorker.name))
 
   class Door(
               val id: String,
@@ -157,13 +171,14 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
       name(s"Shift team ${shift.id}")
 
       // These are like invariants at a given point of time
-      val calledInStandbys = shift.standbys.filter(wrk => wrk notified StandbyNotification(shift))
+      val calledInStandbys = shift.standbys.filter(wrk => wrk.notifiedExt { case WorkAssignedNotification(`shift`, _) => true })
       val availableStandbys = shift.standbys diff calledInStandbys
 
       val canceledWorkers = shift.workers.filter(wrk => wrk notified AssignmentCanceledNotification(shift))
-      val canceledWorkersWithoutStandby = canceledWorkers.filterNot(wrk => shift.foreman notified WorkerReplacedNotification(shift, wrk))
+      val canceledWorkersWithoutStandby = canceledWorkers.filterNot(wrk => calledInStandbys.exists(standby => standby.notifiedExt { case WorkAssignedNotification(`shift`, `wrk`) => true }))
 
       val assignedWorkers = (shift.workers union calledInStandbys) diff canceledWorkers
+      val assignedWorkersWithoutStandbys = shift.workers diff canceledWorkers
 
 
       object AccessToFactory extends Ensemble { // Kdyz se constraints vyhodnoti na LogicalBoolean, tak ten ensemble vubec nezatahujeme solver modelu a poznamename si, jestli vysel nebo ne
@@ -174,8 +189,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
             (now isEqualOrBefore (shift.endTime plusMinutes 45))
         }
 
-        allow(shift.foreman, "enter", shift.workPlace.factory)
-        allow(assignedWorkers, "enter", shift.workPlace.factory)
+        allow(shift.foreman, Enter, shift.workPlace.factory)
+        allow(assignedWorkers, Enter, shift.workPlace.factory)
       }
 
       object AccessToDispenser extends Ensemble {
@@ -186,7 +201,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
             (now isEqualOrBefore shift.endTime)
         }
 
-        allow(assignedWorkers, "use", shift.workPlace.factory.dispenser)
+        allow(assignedWorkers, Use, shift.workPlace.factory.dispenser)
       }
 
       object AccessToWorkplace extends Ensemble {
@@ -199,15 +214,13 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
             (now isEqualOrBefore (shift.endTime plusMinutes 25))
         }
 
-        allow(workersWithHeadGear, "enter", shift.workPlace)
+        allow(workersWithHeadGear, Enter, shift.workPlace)
       }
-
-
 
       object NotificationAboutWorkersThatArePotentiallyLate extends Ensemble {
         name(s"NotificationAboutWorkersThatArePotentiallyLate")
 
-        val workersThatAreLate = assignedWorkers.filter(wrk => !(wrk isAt shift.workPlace.factory))
+        val workersThatAreLate = assignedWorkersWithoutStandbys.filter(wrk => !(wrk isAt shift.workPlace.factory))
 
         situation {
           now isEqualOrAfter (shift.startTime minusMinutes 25)
@@ -215,21 +228,21 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
         workersThatAreLate.foreach(wrk => notify(shift.foreman, WorkerPotentiallyLateNotification(shift, wrk)))
 
-        allow(shift.foreman, "read.personalData.phoneNo", workersThatAreLate) // FIX to state the sub action on the subject
-        allow(shift.foreman, "read.distanceToWorkPlace", workersThatAreLate)
+        allow(shift.foreman, Read("personalData.phoneNo"), workersThatAreLate) // FIX to state the sub action on the subject
+        allow(shift.foreman, Read("distanceToWorkPlace"), workersThatAreLate)
       }
 
 
       object CancellationOfWorkersThatAreLate extends Ensemble {
         name(s"CancellationOfWorkersThatAreLate")
 
-        val workersThatAreLate = assignedWorkers.filter(wrk => !(wrk isAt shift.workPlace.factory))
+        val workersThatAreLate = assignedWorkersWithoutStandbys.filter(wrk => !(wrk isAt shift.workPlace.factory))
 
         situation {
           now isEqualOrAfter (shift.startTime minusMinutes 15)
         }
 
-        notify(workersThatAreLate, AssignmentCanceledNotification(shift))
+        notifyMany(workersThatAreLate, AssignmentCanceledNotification(shift))
       }
 
       object AssignmentOfStandbys extends Ensemble {
@@ -243,10 +256,11 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
           constraints {
             standby.all(_.capabilities contains shift.assignments(canceledWorker))
           }
+
+          notify(standby.selectedMembers.head, WorkAssignedNotification(shift, canceledWorker))
         }
 
         val standbyAssignments = rules(canceledWorkersWithoutStandby.map(new StandbyAssignment(_)))
-
         val selectedStandbys = unionOf(standbyAssignments.map(_.standby))
 
         situation {
@@ -257,9 +271,6 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         constraints {
           standbyAssignments.map(_.standby).allDisjoint
         }
-
-        notify(selectedStandbys.selectedMembers, StandbyNotification(shift))
-        canceledWorkersWithoutStandby.foreach(wrk => notify(shift.foreman, WorkerReplacedNotification(shift, wrk)))
       }
 
       object NoAccessToPersonalDataExceptForLateWorkers extends Ensemble {
@@ -273,8 +284,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
           val workers = shift.workers diff workersPotentiallyLate
 
-          deny(shift.foreman, "read.personalData", workers, PrivacyLevel.ANY)
-          deny(shift.foreman, "read.personalData", workersPotentiallyLate, PrivacyLevel.SENSITIVE)
+          deny(shift.foreman, Read("personalData"), workers, PrivacyLevel.ANY)
+          deny(shift.foreman, Read("personalData"), workersPotentiallyLate, PrivacyLevel.SENSITIVE)
       }
 
       rules(
@@ -302,10 +313,11 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 }
 
 object TestScenario {
-  def createScenarioSpec(workersPerWorkplaceCount: Int, workersOnStandbyCount: Int, startTime: LocalDateTime) = {
+  def createScenarioSpec(workersPerWorkplaceCount: Int, workersOnStandbyCount: Int, workersLateCount: Int, startTime: LocalDateTime) = {
     TestScenarioSpec(
       workersPerWorkplaceCount = workersPerWorkplaceCount,
       workersOnStandbyCount = workersOnStandbyCount,
+      workersLateCount = workersLateCount,
       startTime = startTime
     )
   }

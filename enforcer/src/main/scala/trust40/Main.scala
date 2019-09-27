@@ -23,6 +23,8 @@ object Main extends MarshallersSupport {
 
     val simulation = system.actorOf(Simulation.props())
 
+    simulation ! Simulation.Play
+
     val route =
       path("play") {
         post {

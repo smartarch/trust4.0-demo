@@ -8,9 +8,11 @@ object PrivacyLevel extends Enumeration {
   type PrivacyLevel = Value
 }
 
+abstract class PermissionVerb
+
 abstract class Action
-case class AllowAction(subj: Component, action: String, obj: Component) extends Action
-case class DenyAction(subj: Component, action: String, obj: Component, privacyLevel: PrivacyLevel.PrivacyLevel) extends Action
+case class AllowAction(subj: Component, verb: PermissionVerb, obj: Component) extends Action
+case class DenyAction(subj: Component, verb: PermissionVerb, obj: Component, privacyLevel: PrivacyLevel.PrivacyLevel) extends Action
 case class NotifyAction(subj: Component, notification: Notification) extends Action
 
 trait WithActionsInEnsemble {
@@ -24,38 +26,45 @@ trait WithActionsInEnsemble {
     groupActions ++ _actions.flatMap(_())
   }
 
-  def allow(subject: Component, action: String, objct: Component): Unit = allow(List(subject), action, List(objct))
-  def allow(subjects: => Iterable[Component], action: String, objct: Component): Unit = allow(subjects, action, List(objct))
-  def allow(subject: Component, action: String, objects: => Iterable[Component]): Unit = allow(List(subject), action, objects)
+  def allow(subject: Component, verb: PermissionVerb, objct: Component): Unit = allow(List(subject), verb, List(objct))
+  def allow(subjects: => Iterable[Component], verb: PermissionVerb, objct: Component): Unit = allow(subjects, verb, List(objct))
+  def allow(subject: Component, verb: PermissionVerb, objects: => Iterable[Component]): Unit = allow(List(subject), verb, objects)
 
-  def allow(subjects: => Iterable[Component], action: String, objects: => Iterable[Component]): Unit = {
+  def allow(subjects: => Iterable[Component], verb: PermissionVerb, objects: => Iterable[Component]): Unit = {
     _actions += (() => {
       for {
         objct <- objects
         subject <- subjects
-      } yield AllowAction(subject, action, objct)
+      } yield AllowAction(subject, verb, objct)
     })
   }
 
-  def deny(subject: Component, action: String, objct: Component, privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(List(subject), action, List(objct), privacyLevel)
-  def deny(subjects: => Iterable[Component], action: String, objct: Component, privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(subjects, action, List(objct), privacyLevel)
-  def deny(subject: Component, action: String, objects: => Iterable[Component], privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(List(subject), action, objects, privacyLevel)
+  def deny(subject: Component, verb: PermissionVerb, objct: Component, privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(List(subject), verb, List(objct), privacyLevel)
+  def deny(subjects: => Iterable[Component], verb: PermissionVerb, objct: Component, privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(subjects, verb, List(objct), privacyLevel)
+  def deny(subject: Component, verb: PermissionVerb, objects: => Iterable[Component], privacyLevel: PrivacyLevel.PrivacyLevel): Unit = deny(List(subject), verb, objects, privacyLevel)
 
-  def deny(subjects: => Iterable[Component], action: String, objects: => Iterable[Component], privacyLevel: PrivacyLevel.PrivacyLevel): Unit = {
+  def deny(subjects: => Iterable[Component], verb: PermissionVerb, objects: => Iterable[Component], privacyLevel: PrivacyLevel.PrivacyLevel): Unit = {
     _actions += (() => {
       for {
         objct <- objects
         subject <- subjects
-      } yield DenyAction(subject, action, objct, privacyLevel)
+      } yield DenyAction(subject, verb, objct, privacyLevel)
     })
   }
 
-  def notify(subject: Component, notification: Notification): Unit = notify(List(subject), notification)
+  def notify(subject: => Component, notification: Notification): Unit = notifyMany(List(subject), notification)
 
-  def notify(subjects: => Iterable[Component], notification: Notification): Unit = {
+  def notifyMany(subjects: => Iterable[Component], notification: Notification): Unit = {
     _actions += (() => {
       subjects.foreach(_.notify(notification))
       subjects.map(NotifyAction(_, notification))
+    })
+  }
+
+  def notifyMany(subjects: => Iterable[Component], notification: Component => Notification): Unit = {
+    _actions += (() => {
+      subjects.foreach(subj => subj.notify(notification(subj)))
+      subjects.map(subj => NotifyAction(subj, notification(subj)))
     })
   }
 }

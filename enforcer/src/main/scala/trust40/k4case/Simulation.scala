@@ -22,8 +22,10 @@ object Simulation {
 
   final case class Reset(epoch: Int)
   final case class Events(epoch: Int, events: List[ScenarioEvent])
-  final case class Permissions(epoch: Int, permissions: List[(String, String, String)])
+  final case class Permissions(epoch: Int, permissions: List[Permission])
+  final case class Notifications(epoch: Int, notifications: List[ComponentNotification])
   final case class Step(currentTime: LocalDateTime)
+  final case class WorkerStep(currentTime: LocalDateTime, notifications: List[(String, List[String])])
 
   private case object TickTimer
   private case object Tick
@@ -40,8 +42,8 @@ object Simulation {
 }
 
 class Simulation() extends Actor with Timers {
-  import Simulation._
   import Simulation.State._
+  import Simulation._
 
   private val log = Logging(context.system, this)
 
@@ -51,7 +53,7 @@ class Simulation() extends Actor with Timers {
   private val startTime = LocalDateTime.parse("2018-12-03T08:00:00")
   private val endTime = startTime plus Duration.ofHours(10)
 
-  private val scenarioSpec = TestScenario.createScenarioSpec(workersPerWorkplaceCount=3, workersOnStandbyCount=1, startTime)
+  private val scenarioSpec = TestScenario.createScenarioSpec(workersPerWorkplaceCount=3, workersOnStandbyCount=1, workersLateCount=1, startTime)
 
   private val resolver = context.actorOf(Resolver.props(scenarioSpec), name = "resolver")
   private val enforcer: ActorRef = context.actorOf(Enforcer.props(resolver), name = "enforcer")
@@ -62,17 +64,33 @@ class Simulation() extends Actor with Timers {
   workers += context.actorOf(SimulatedWorkerInShift.props(s"B-foreman", "B", "F", startTime), name = s"B-foreman")
   workers += context.actorOf(SimulatedWorkerInShift.props(s"C-foreman", "C", "F", startTime), name = s"C-foreman")
 
-  // workers
-  for (idx <- 1 to scenarioSpec.workersPerWorkplaceCount) {
-    workers += context.actorOf(SimulatedWorkerInShift.props(f"A-worker-$idx%03d", "A", idx.toString, startTime), name = f"A-worker-$idx%03d")
-    workers += context.actorOf(SimulatedWorkerInShift.props(f"B-worker-$idx%03d", "B", idx.toString, startTime), name = f"B-worker-$idx%03d")
-    workers += context.actorOf(SimulatedWorkerInShift.props(f"C-worker-$idx%03d", "C", idx.toString, startTime), name = f"C-worker-$idx%03d")
+  {
+    var remainingLateWorkers = scenarioSpec.workersLateCount
+
+    def addWorker(wpId: String, idx: Int): Unit = {
+      if (remainingLateWorkers > 0) {
+        workers += context.actorOf(SimulatedLateWorkerInShift.props(f"$wpId%s-worker-$idx%03d", wpId, idx.toString, startTime), name = f"$wpId%s-worker-$idx%03d")
+        remainingLateWorkers -= 1
+      } else {
+        workers += context.actorOf(SimulatedWorkerInShift.props(f"$wpId%s-worker-$idx%03d", wpId, idx.toString, startTime), name = f"$wpId%s-worker-$idx%03d")
+      }
+    }
+
+    // workers
+    for (idx <- 1 to scenarioSpec.workersPerWorkplaceCount) {
+      addWorker("A", idx)
+      addWorker("B", idx)
+      addWorker("C", idx)
+    }
   }
 
-  // TODO - add standbys
+  for (idx <- 1 to scenarioSpec.workersOnStandbyCount) {
+    workers += context.actorOf(SimulatedStandbyInShift.props(f"standby-$idx%03d", idx.toString, startTime), name = f"standby-$idx%03d")
+  }
 
   private val workerStates = mutable.HashMap.empty[String, WorkerState]
-  private var currentPermissions: List[(String, String, String)] = _
+  private var currentPermissions: List[Permission] = _
+  private var currentNotifications: List[ComponentNotification] = _
 
   private var currentEpoch = 0
 
@@ -88,6 +106,7 @@ class Simulation() extends Actor with Timers {
     currentTime = null
     workerStates.clear()
     currentPermissions = List()
+    currentNotifications = List()
 
     resolver ! Reset(currentEpoch)
     enforcer ! Reset(currentEpoch)
@@ -122,7 +141,11 @@ class Simulation() extends Actor with Timers {
     }
 
     for (worker <- workers) {
-      worker ! Step(currentTime)
+      val workerName = worker.path.name
+      val notifs = currentNotifications.collect {
+        case ComponentNotification(`workerName`, action, params) => (action, params)
+      }
+      worker ! WorkerStep(currentTime, notifs)
     }
 
     enforcer ! Step(currentTime)
@@ -134,7 +157,14 @@ class Simulation() extends Actor with Timers {
   }
 
   private def processStatus(): Unit = {
-    sender() ! SimulationState(currentTime.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), state, workerStates.toMap, currentPermissions)
+    sender() ! SimulationState(
+      currentTime.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+      state,
+      workerStates.toMap,
+      currentPermissions.collect({
+        case AllowPermission(subj, verb, obj) => (subj, verb, obj)
+      })
+    )
   }
 
   private def processEvents(events: List[ScenarioEvent]): Unit = {
@@ -145,8 +175,12 @@ class Simulation() extends Actor with Timers {
     enforcer ! Enforcer.Events(events)
   }
 
-  private def processPermissions(permissions: List[(String, String, String)]): Unit = {
+  private def processPermissions(permissions: List[Permission]): Unit = {
     currentPermissions = permissions
+  }
+
+  private def processNotifications(notifications: List[ComponentNotification]): Unit = {
+    currentNotifications = notifications
   }
 
 
@@ -158,9 +192,14 @@ class Simulation() extends Actor with Timers {
 
     case Tick => processTick()
 
-    case msg @ Events(epoch, events) =>
+    case Events(epoch, events) =>
       if (epoch == currentEpoch) {
         processEvents(events)
+      }
+
+    case Notifications(epoch, notifications) =>
+      if (epoch == currentEpoch) {
+        processNotifications(notifications)
       }
 
     case Permissions(epoch, permissions) =>

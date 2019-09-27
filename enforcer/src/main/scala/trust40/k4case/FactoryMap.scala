@@ -5,7 +5,7 @@ object FactoryMap {
   private var positions: Map[String, Position] = _
 
   def init(): Unit = {
-    val xmlFile = XML.loadFile("../visualizer/client/images/factory.svg")
+    val xmlFile = XML.loadFile("factory.svg")
 
     positions = (
       for {

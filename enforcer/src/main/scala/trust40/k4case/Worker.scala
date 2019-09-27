@@ -5,7 +5,7 @@ import java.time.{Duration, LocalDateTime}
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import trust40.k4case.Simulation.{Events, Reset, Step}
+import trust40.k4case.Simulation.{Events, Reset, WorkerStep}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -68,6 +68,8 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   protected var currentTime: LocalDateTime = _
   protected var currentPosition: Position = _
 
+  protected var currentNotifications: List[(String, List[String])] = List()
+
   protected var currentEpoch: Int = _
 
   private def generateEvents(time: LocalDateTime): List[ScenarioEvent] = {
@@ -90,6 +92,7 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
     }
 
     if (currentAction != null && currentAction.isOver(time)) {
+      currentTime = time
       addEventsAndDropAction()
     }
 
@@ -153,7 +156,8 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   protected def generateActions() {}
   protected def generateInitialActions() {}
 
-  private def processStep(currentTime: LocalDateTime): Unit = {
+  private def processStep(currentTime: LocalDateTime, notifications: List[(String, List[String])]): Unit = {
+    currentNotifications = notifications
     val events = generateEvents(currentTime)
     context.parent ! Events(currentEpoch, events)
   }
@@ -172,7 +176,7 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   }
 
   def receive = {
-    case Step(currentTime) => processStep(currentTime)
+    case WorkerStep(currentTime, notifications) => processStep(currentTime, notifications)
     case Reset(epoch) => processReset(epoch)
   }
 }
@@ -218,5 +222,48 @@ class SimulatedWorkerInShift(person: String, val wpId: String, val inShiftId: St
     accessDoor()
     move("InFrontOfMainGate")
     move(s"Init-$wpId$inShiftId")
+  }
+}
+
+
+
+object SimulatedLateWorkerInShift {
+  def props(person: String, wpId: String, inShiftId: String, startTime: LocalDateTime) = Props(new SimulatedLateWorkerInShift(person, wpId, inShiftId, startTime))
+}
+
+// Pos-InWorkPlace1-1, Pos-JunctionToWorkPlace1and2, Pos-InFrontOfMainGate, Pos-Init3-2, Pos-Init2-1, Pos-InWorkPlace2-3, Pos-Gate1,
+// Pos-InFrontOfGate2, Pos-InWorkPlace3-3, Pos-BottomRight, Pos-Init1-3, Pos-InWorkPlace3-1, Pos-InFrontOfGate3, Pos-Init3-1, Pos-InWorkPlace2-1, Pos-Gate3,
+// Pos-Dispenser, Pos-MainGate, Pos-InWorkPlace1-3, Pos-Init1-2, Pos-Init2-3, Pos-InWorkPlace3-2, Pos-InitStandby-1, Pos-TopLeft, Pos-InWorkPlace1-2, Pos-Init1-1,
+// Pos-InWorkPlace2-2, Pos-Init2-2, Pos-Gate2, Pos-InFrontOfGate1, Pos-Init3-3
+
+class SimulatedLateWorkerInShift(person: String, val wpId: String, val inShiftId: String, startTime: LocalDateTime)
+  extends AbstractSimulatedWorker(person, FactoryMap(s"Init-$wpId$inShiftId"), startTime) {
+
+  override protected def generateInitialActions(): Unit = {
+    waitRandom(25 minutes, 30 minutes)
+
+    move("InFrontOfMainGate")
+    move(s"Init-$wpId$inShiftId")
+  }
+}
+
+
+object SimulatedStandbyInShift {
+  def props(person: String, inShiftId: String, startTime: LocalDateTime) = Props(new SimulatedStandbyInShift(person, inShiftId, startTime))
+}
+
+// Pos-InWorkPlace1-1, Pos-JunctionToWorkPlace1and2, Pos-InFrontOfMainGate, Pos-Init3-2, Pos-Init2-1, Pos-InWorkPlace2-3, Pos-Gate1,
+// Pos-InFrontOfGate2, Pos-InWorkPlace3-3, Pos-BottomRight, Pos-Init1-3, Pos-InWorkPlace3-1, Pos-InFrontOfGate3, Pos-Init3-1, Pos-InWorkPlace2-1, Pos-Gate3,
+// Pos-Dispenser, Pos-MainGate, Pos-InWorkPlace1-3, Pos-Init1-2, Pos-Init2-3, Pos-InWorkPlace3-2, Pos-InitStandby-1, Pos-TopLeft, Pos-InWorkPlace1-2, Pos-Init1-1,
+// Pos-InWorkPlace2-2, Pos-Init2-2, Pos-Gate2, Pos-InFrontOfGate1, Pos-Init3-3
+
+class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: LocalDateTime)
+  extends AbstractSimulatedWorker(person, FactoryMap(s"Init-S$inShiftId"), startTime) {
+
+  override protected def generateInitialActions(): Unit = {
+  }
+
+  override protected def generateActions(): Unit = {
+    log.info(currentNotifications.toString)
   }
 }

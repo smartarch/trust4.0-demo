@@ -201,11 +201,9 @@ const minorStepsInRefetchPeriod = 5;
         const ts = this.state.ts;
         const tsFormatted = ts ? ts.utc().format('HH:mm:ss') : null;
 
-        /*
         if (this.state.permissions && this.state.permissions.length > 0) {
             console.log(this.state.permissions);
         }
-        */
 
         const handleHeaderRect = sigCid => {
             return node => node.style('fill', data[sigCid] > 0.01 ? 'lime' : 'red');
