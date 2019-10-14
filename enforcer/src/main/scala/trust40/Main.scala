@@ -23,7 +23,7 @@ object Main extends MarshallersSupport {
 
     val simulation = system.actorOf(Simulation.props())
 
-    simulation ! Simulation.Play
+    // simulation ! Simulation.Play
 
     val route =
       path("play") {
@@ -51,9 +51,9 @@ object Main extends MarshallersSupport {
       }
 
 
-    val bindingFuture = Http().bindAndHandle(route, "localhost", 3100)
+    val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 3100)
 
-    println("Listening on localhost:3100.")
+    println("Listening on 0.0.0.0:3100.")
 
     /*
     println("Press ENTER to finish.")

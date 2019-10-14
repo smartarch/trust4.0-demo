@@ -31,11 +31,17 @@ services:
 
   trustvis-enforcer:
     build: enforcer
-    ports:
-      - "3100:3100"
+
+  elasticsearch:
+    image: elasticsearch:6.8.3
+    environment:
+      - discovery.type=single-node
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
 
 volumes:
   mysql-data:
   redis-data:
   mongo-data:
+  elasticsearch-data:
 

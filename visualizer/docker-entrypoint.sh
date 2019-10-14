@@ -9,6 +9,7 @@ Optional parameters:
   --sandboxUrlBase XXX        - sets the sandbox url of the TrustVis Visualizer instance (default: http://localhost:8081)
   --withProxy                 - use if TrustVis Visualizer instance is behind an http reverse proxy
   --trustvisEnforcerUrl XXX   - sets TrustVis Enforcer host (default: http://trustvis-enforcer:3100/)
+  --elasticsearchHost XXX               - sets elasticsearch host (default: elasticsearch)
   --mongoHost XXX             - sets mongo host (default: mongo)
   --redisHost XXX             - sets redis host (default: redis)
   --mySqlHost XXX             - sets mysql host (default: mysql)
@@ -25,6 +26,7 @@ trustvisEnforcerUrl=http://trustvis-enforcer:3100/
 mongoHost=mongo
 redisHost=redis
 mySqlHost=mysql
+elasticsearchHost=elasticsearch
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -49,6 +51,10 @@ while [ $# -gt 0 ]; do
             ;;
         --redisHost)
             redisHost="$2"
+            shift 2
+            ;;
+        --elasticsearchHost)
+            elasticsearchHost="$2"
             shift 2
             ;;
         --mySqlHost)
@@ -88,6 +94,9 @@ redis:
   enabled: true
   host: $redisHost
 
+elasticsearch:
+  host: $elasticsearchHost
+
 log:
   level: info
   
@@ -101,6 +110,8 @@ EOT
 while ! nc -z $mySqlHost 3306; do sleep 1; done
 while ! nc -z $redisHost 6379; do sleep 1; done
 while ! nc -z $mongoHost 27017; do sleep 1; done
+while ! nc -z $elasticsearchHost 9200; do sleep 1; done
+while ! mysql -h mysql -u trustvis --password=trustvis -e 'show databases'; do sleep 1; done
 
 cd server
 NODE_ENV=production node index.js
