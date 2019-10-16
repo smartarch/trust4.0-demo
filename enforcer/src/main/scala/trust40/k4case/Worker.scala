@@ -26,7 +26,7 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
 
   private class InitAction() extends Action(startTime, Duration.ZERO, startPosition, startPosition) {
     override def toString: String = s"InitAction($startTime, $startPosition)"
-    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(startTime, "init", person, startPosition))
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(startTime, "init", person, startPosition, List()))
   }
 
   private class MoveAction(startTime: LocalDateTime, duration: Duration, startPosition: Position, targetPosition: Position) extends Action(startTime, duration, startPosition, targetPosition) {
@@ -44,18 +44,23 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
       val x = startPosition.x * (1 - alpha) + targetPosition.x * alpha
       val y = startPosition.y * (1 - alpha) + targetPosition.y * alpha
 
-      List(ScenarioEvent(startTime.plusNanos(nsSinceStart), "move", person, Position(x, y)))
+      List(ScenarioEvent(startTime.plusNanos(nsSinceStart), "move", person, Position(x, y), List()))
     }
   }
 
   private class AccessDoorAction(timestamp: LocalDateTime, doorPosition: Position) extends Action(timestamp, Duration.ZERO, doorPosition, doorPosition) {
     override def toString: String = s"AccessDoorAction($timestamp, $doorPosition)"
-    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "access-door", person, doorPosition))
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "access-door", person, doorPosition, List()))
+  }
+
+  private class TakeOverAction(timestamp: LocalDateTime, position: Position, replacedWorkerId: String) extends Action(timestamp, Duration.ZERO, position, position) {
+    override def toString: String = s"TakeOverAction($timestamp, $replacedWorkerId)"
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "take-over", person, position, List(replacedWorkerId)))
   }
 
   private class AccessDispenserAction(timestamp: LocalDateTime, dispenserPosition: Position) extends Action(timestamp, Duration.ZERO, dispenserPosition, dispenserPosition) {
     override def toString: String = s"AccessDispenserAction($timestamp, $dispenserPosition)"
-    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "access-dispenser", person, dispenserPosition))
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "access-dispenser", person, dispenserPosition, List()))
   }
 
   private class WaitAction(timestamp: LocalDateTime, duration: Duration, position: Position) extends Action(timestamp, duration, position, position) {
@@ -130,6 +135,8 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   }
 
   protected def accessDoor(): Unit = futureActions += new AccessDoorAction(lastActionTime, lastActionPosition)
+
+  protected def takeOver(replacedWorkerId: String): Unit = futureActions += new TakeOverAction(lastActionTime, lastActionPosition, replacedWorkerId)
 
   protected def accessDispenser(): Unit = futureActions += new AccessDispenserAction(lastActionTime, lastActionPosition)
 
@@ -252,18 +259,52 @@ object SimulatedStandbyInShift {
   def props(person: String, inShiftId: String, startTime: LocalDateTime) = Props(new SimulatedStandbyInShift(person, inShiftId, startTime))
 }
 
-// Pos-InWorkPlace1-1, Pos-JunctionToWorkPlace1and2, Pos-InFrontOfMainGate, Pos-Init3-2, Pos-Init2-1, Pos-InWorkPlace2-3, Pos-Gate1,
-// Pos-InFrontOfGate2, Pos-InWorkPlace3-3, Pos-BottomRight, Pos-Init1-3, Pos-InWorkPlace3-1, Pos-InFrontOfGate3, Pos-Init3-1, Pos-InWorkPlace2-1, Pos-Gate3,
-// Pos-Dispenser, Pos-MainGate, Pos-InWorkPlace1-3, Pos-Init1-2, Pos-Init2-3, Pos-InWorkPlace3-2, Pos-InitStandby-1, Pos-TopLeft, Pos-InWorkPlace1-2, Pos-Init1-1,
-// Pos-InWorkPlace2-2, Pos-Init2-2, Pos-Gate2, Pos-InFrontOfGate1, Pos-Init3-3
-
 class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: LocalDateTime)
   extends AbstractSimulatedWorker(person, FactoryMap(s"Init-S$inShiftId"), startTime) {
+
+  var forWpId: String = _
+  var forInShiftId: String = _
 
   override protected def generateInitialActions(): Unit = {
   }
 
   override protected def generateActions(): Unit = {
-    log.info(currentNotifications.toString)
+    if (forWpId == null) {
+      // log.info(currentNotifications.toString)
+      for (notif <- currentNotifications) {
+        notif match {
+          case ("workAssigned", List(shiftId, name, wpId, inShiftId)) =>
+            this.forWpId = wpId
+            this.forInShiftId = inShiftId
+
+            takeOver(name)
+        }
+      }
+
+      if (forWpId != null) {
+        move("InFrontOfMainGate")
+        move("MainGate")
+        accessDoor()
+        move("Dispenser")
+        accessDispenser()
+        move(s"JunctionToWorkPlaceGate-$forWpId")
+        move(s"InFrontOfWorkPlaceGate-$forWpId")
+        move(s"WorkPlaceGate-$forWpId")
+        accessDoor()
+        move(s"InWorkPlace-$forWpId$forInShiftId")
+
+        waitTillAfterStart(9 hours)
+
+        waitRandom(2 minutes, 5 minutes)
+        move(s"WorkPlaceGate-$forWpId")
+        accessDoor()
+        move(s"InFrontOfWorkPlaceGate-$forWpId")
+        move(s"JunctionToWorkPlaceGate-$forWpId")
+        move("MainGate")
+        accessDoor()
+        move("InFrontOfMainGate")
+        move(s"Init-S$inShiftId")
+      }
+    }
   }
 }

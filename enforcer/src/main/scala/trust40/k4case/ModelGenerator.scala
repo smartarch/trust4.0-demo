@@ -32,8 +32,8 @@ trait ModelGenerator {
         workPlacesMap.values.toList
       )
 
-      def addWorker(id: String, caps: Set[String]): Unit = {
-        workersMap(id) = new Worker(id, null, caps, false)
+      def addWorker(id: String, wpId: String, inShiftId: String, caps: Set[String]): Unit = {
+        workersMap(id) = new Worker(id, null, wpId, inShiftId, caps, false)
       }
 
       def addShift(id: String, startTime: LocalDateTime, endTime: LocalDateTime, workPlace: String, foreman: String, workers: List[String], standbys: List[String], assignments: Map[String, String]): Unit = {
@@ -51,7 +51,7 @@ trait ModelGenerator {
       }
     }
 
-    def withWorker(id: String, caps: Set[String])(implicit ms: ModelBuilder): Unit = ms.addWorker(id, caps)
+    def withWorker(id: String, wpId: String, inShiftId: String, caps: Set[String])(implicit ms: ModelBuilder): Unit = ms.addWorker(id, wpId, inShiftId, caps)
 
     def withShift(id: String, startTime: LocalDateTime, endTime: LocalDateTime, workPlace: String, foreman: String, workers: List[String], standbys: List[String], assignments: Map[String, String])(implicit ms: ModelBuilder): Unit =
       ms.addShift(id, startTime, endTime, workPlace, foreman, workers, standbys, assignments)

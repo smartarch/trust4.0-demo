@@ -4,6 +4,8 @@ import java.time.LocalDateTime
 
 import trust40.enforcer.tcof._
 
+import scala.collection.mutable
+
 case class TestScenarioSpec(
                              workersPerWorkplaceCount: Int,
                              workersOnStandbyCount: Int,
@@ -17,7 +19,7 @@ case class Area(left: Double, top: Double, right: Double, bottom: Double) {
   def contains(pos: Position): Boolean = pos != null && pos.x >= left && pos.y >= top && pos.x <= right && pos.y <= bottom
 }
 
-case class ScenarioEvent(timestamp: LocalDateTime, eventType: String, person: String, position: Position)
+case class ScenarioEvent(timestamp: LocalDateTime, eventType: String, person: String, position: Position, params: List[String])
 
 trait WithId {
   def id: String
@@ -50,7 +52,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   case class WorkerPotentiallyLateNotification(shift: Shift, worker: Worker) extends Notification("workerPotentiallyLate", List(shift.id, worker.name))
 
   case class AssignmentCanceledNotification(shift: Shift) extends Notification("assignmentCanceled", List(shift.id))
-  case class WorkAssignedNotification(shift: Shift, replacedWorker: Worker) extends Notification("workAssigned", List(shift.id, replacedWorker.name))
+  case class WorkAssignedNotification(shift: Shift, replacedWorker: Worker) extends Notification("workAssigned", List(shift.id, replacedWorker.name, replacedWorker.wpId, replacedWorker.inShiftId))
 
   class Door(
               val id: String,
@@ -71,6 +73,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   class Worker(
                 val id: String,
                 var position: Position,
+                var wpId: String,
+                var inShiftId: String,
                 val capabilities: Set[String],
                 var hasHeadGear: Boolean
               ) extends Component with WithId {
@@ -135,19 +139,22 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
   import ModelDSL._
   val (factory, workersMap, shiftsMap) = withModel { implicit builder =>
+    var workersOnStandby = mutable.ListBuffer.empty[String]
+    for (idx <- 1 to scenarioParams.workersOnStandbyCount) {
+      val id = f"standby-$idx%03d"
+      withWorker(id, null, idx.toString, Set("A", "B", "C", "D", "E"))
+      workersOnStandby += id
+    }
+
     for (wp <- List("A", "B", "C")) {
       val foremanId = s"$wp-foreman"
-      withWorker(foremanId, Set("A", "B", "C", "D", "E"))
+      withWorker(foremanId, wp, "F", Set("A", "B", "C", "D", "E"))
 
-      val workersInShift = (1 to scenarioParams.workersPerWorkplaceCount).map(idx => f"$wp%s-worker-$idx%03d")
-      for (id <- workersInShift) {
-        withWorker(id, Set("A", "B", "C", "D", "E"))
-      }
-
-      val workersOnStandby = (1 to scenarioParams.workersOnStandbyCount).map(idx => f"standby-$idx%03d")
-
-      for (id <- workersOnStandby) {
-        withWorker(id, Set("A", "B", "C", "D", "E"))
+      var workersInShift = mutable.ListBuffer.empty[String]
+      for (idx <- 1 to scenarioParams.workersPerWorkplaceCount) {
+        val id = f"$wp%s-worker-$idx%03d"
+        withWorker(id, wp, idx.toString, Set("A", "B", "C", "D", "E"))
+        workersInShift += id
       }
 
       withShift(

@@ -9,7 +9,7 @@ import akka.event.Logging
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-case class WorkerState(position: Position)
+case class WorkerState(position: Position, hasHeadGear: Boolean, standbyFor: Option[String])
 case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
 
 object Simulation {
@@ -169,7 +169,20 @@ class Simulation() extends Actor with Timers {
 
   private def processEvents(events: List[ScenarioEvent]): Unit = {
     for (event <- events) {
-      workerStates(event.person) = WorkerState(event.position)
+      val oldState = workerStates.getOrElse(event.person, WorkerState(null, false, None))
+
+      var hasHeadGear = oldState.hasHeadGear
+      var standbyFor = oldState.standbyFor
+
+      if (event.eventType == "access-dispenser") {
+        hasHeadGear = true
+      }
+
+      if (event.eventType == "take-over") {
+        standbyFor = Some(event.params(0))
+      }
+
+      workerStates(event.person) = WorkerState(event.position, hasHeadGear, standbyFor)
     }
 
     enforcer ! Enforcer.Events(events)

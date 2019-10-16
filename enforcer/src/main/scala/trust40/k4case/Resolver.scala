@@ -33,9 +33,9 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
 
 
   private def processResolve(currentTime: LocalDateTime, events: List[ScenarioEvent]): Unit = {
-    log.info("Resolver started")
-    log.info("Time: " + currentTime)
-    log.info("Events: " + events)
+    // log.info("Resolver started")
+    // log.info("Time: " + currentTime)
+    // log.info("Events: " + events)
 
     scenario.now = currentTime
 
@@ -79,7 +79,7 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
       log.error("Error. No solution exists.")
     }
 
-    log.info("Resolver finished")
+    // log.info("Resolver finished")
 
     sender() ! ResolverResult(currentEpoch, perms.toList, notifs.toList)
   }
