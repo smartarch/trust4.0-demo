@@ -157,7 +157,9 @@ const minorStepsInRefetchPeriod = 5;
                                 id: key,
                                 symbol,
                                 x: interp(lastWorker.position.x, nextWorker.position.x),
-                                y: interp(lastWorker.position.y, nextWorker.position.y)
+                                y: interp(lastWorker.position.y, nextWorker.position.y),
+                                hasHeadGear: lastWorker.hasHeadGear,
+                                standbyFor: lastWorker.standbyFor
                             });
                         }
                     }
@@ -224,13 +226,15 @@ const minorStepsInRefetchPeriod = 5;
             });
         };
 
-        const selWorker = this.state.selectedWorker;
+        const selWorkerId = this.state.selectedWorker;
         const selWorkerPerms = new Set();
         let workerDetails;
-        if (selWorker) {
+        if (selWorkerId) {
+            let selWorker = this.state.workers.find(worker => worker.id === selWorkerId);
+
             const perms = [];
             for (const perm of this.state.permissions) {
-                if (perm[0] === selWorker) {
+                if (perm[0] === selWorkerId) {
                     perms.push(<span key={`${perm[0]}-${perm[1]}-${perm[2]}`} className={`badge badge-success ${styles.perm}`}>{perm[1]} {perm[2]}</span>);
                     selWorkerPerms.add(perm[1] + ' ' + perm[2]);
                 }
@@ -241,7 +245,7 @@ const minorStepsInRefetchPeriod = 5;
                     <div className={`card-body ${styles.detailsSection}`}>
                         <div className={`card-title ${styles.detailsSectionHeader}`}>{t('Identification')}</div>
                         <div className="card-text">
-                            {selWorker}
+                            {selWorkerId}
                         </div>
                     </div>
                     <div className={`card-body ${styles.detailsSection}`}>
@@ -250,6 +254,22 @@ const minorStepsInRefetchPeriod = 5;
                             {perms.length > 0 ? perms : t('None')}
                         </div>
                     </div>
+
+                    <div className={`card-body ${styles.detailsSection}`}>
+                        <div className={`card-title ${styles.detailsSectionHeader}`}>{t('Has head gear')}</div>
+                        <div className="card-text">
+                            {selWorker && selWorker.hasHeadGear ? t('Yes') : t('No')}
+                        </div>
+                    </div>
+
+                    {selWorker && selWorker.standbyFor &&
+                    <div className={`card-body ${styles.detailsSection}`}>
+                        <div className={`card-title ${styles.detailsSectionHeader}`}>{t('Standby for')}</div>
+                        <div className="card-text">
+                            {selWorker.standbyFor}
+                        </div>
+                    </div>
+                    }
                 </>
             );
         } else {
@@ -263,7 +283,7 @@ const minorStepsInRefetchPeriod = 5;
         }
 
         const getPlaceColor = perm => {
-            if (!selWorker) return 'white';
+            if (!selWorkerId) return 'white';
             else if (selWorkerPerms.has(perm)) return '#4dbd74';
             else return '#f86c6b';
         };
