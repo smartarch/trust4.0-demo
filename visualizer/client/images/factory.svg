@@ -685,7 +685,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.99999999"
-     inkscape:cx="490.61245"
+     inkscape:cx="507.02684"
      inkscape:cy="377.89858"
      inkscape:document-units="mm"
      inkscape:current-layer="GroundPlan"
@@ -874,7 +874,28 @@
            height="13.999999"
            x="508"
            y="102.32563" /></flowRegion><flowPara
-         id="flowPara4988">WP3</flowPara></flowRoot>    <g
+         id="flowPara4988">WP3</flowPara></flowRoot>    <rect
+       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="MachineA"
+       width="16.066664"
+       height="14.418797"
+       x="182.19209"
+       y="46.14793" />
+    <rect
+       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="MachineB"
+       width="16.066664"
+       height="14.418797"
+       x="276.02341"
+       y="28.683502" />
+    <rect
+       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="MachineC"
+       width="16.066664"
+       height="14.418797"
+       x="276.78412"
+       y="138.73073" />
+    <g
        transform="matrix(0.2166086,0,0,0.2166086,184.4789,49.728256)"
        id="MachineIconA">
       <rect
@@ -968,13 +989,6 @@
          id="path5187"
          d="m 14,1 h 3 c 0.552285,0 1,0.4477152 1,1 v 6 c 0,0.5522848 -0.447715,1 -1,1 h -3 z" />
     </g>
-    <rect
-       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="MachineA"
-       width="16.066664"
-       height="14.418797"
-       x="182.19209"
-       y="46.14793" />
     <g
        transform="matrix(0.2166086,0,0,0.2166086,278.31014,32.263814)"
        id="MachineIconB">
@@ -1069,13 +1083,6 @@
          id="path5187-6"
          d="m 14,1 h 3 c 0.552285,0 1,0.4477152 1,1 v 6 c 0,0.5522848 -0.447715,1 -1,1 h -3 z" />
     </g>
-    <rect
-       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="MachineB"
-       width="16.066664"
-       height="14.418797"
-       x="276.02341"
-       y="28.683502" />
     <g
        transform="matrix(0.2166086,0,0,0.2166086,279.07093,142.31102)"
        id="MachineIconC">
@@ -1170,13 +1177,6 @@
          id="path5187-7"
          d="m 14,1 h 3 c 0.552285,0 1,0.4477152 1,1 v 6 c 0,0.5522848 -0.447715,1 -1,1 h -3 z" />
     </g>
-    <rect
-       style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="MachineC"
-       width="16.066664"
-       height="14.418797"
-       x="276.78412"
-       y="138.73073" />
   </g>
   <g
      inkscape:groupmode="layer"
