@@ -16,11 +16,6 @@ services:
     volumes:
     - redis-data:/data
 
-  mongo:
-    image: mongo:4-xenial
-    volumes:
-    - mongo-data:/data/db
-
   trustvis-visualizer:
     build: visualizer
     command: ${TRUSTVIS_SETTINGS}
@@ -42,6 +37,5 @@ services:
 volumes:
   mysql-data:
   redis-data:
-  mongo-data:
   elasticsearch-data:
 
