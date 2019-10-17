@@ -5,12 +5,15 @@ import java.time.{Duration, LocalDateTime, ZoneOffset}
 
 import akka.actor.{Actor, ActorRef, Props, Timers}
 import akka.event.Logging
+import akka.pattern.{ask, pipe}
+import akka.util.Timeout
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 
 case class WorkerState(position: Position, hasHeadGear: Boolean, standbyFor: Option[String])
 case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
+case class AccessResult(result: String)
 
 object Simulation {
   def props() = Props(new Simulation())
@@ -19,6 +22,7 @@ object Simulation {
   case object Pause
   case object Reset
   case object Status
+  final case class Access(workerId: String)
 
   final case class Reset(epoch: Int)
   final case class Events(epoch: Int, events: List[ScenarioEvent])
@@ -26,6 +30,7 @@ object Simulation {
   final case class Notifications(epoch: Int, notifications: List[ComponentNotification])
   final case class Step(currentTime: LocalDateTime)
   final case class WorkerStep(currentTime: LocalDateTime, notifications: List[(String, List[String])])
+  final case class WorkerAccess(workerPermissions: List[Permission])
 
   private case object TickTimer
   private case object Tick
@@ -53,7 +58,7 @@ class Simulation() extends Actor with Timers {
   private val startTime = LocalDateTime.parse("2018-12-03T08:00:00")
   private val endTime = startTime plus Duration.ofHours(10)
 
-  private val scenarioSpec = TestScenario.createScenarioSpec(workersPerWorkplaceCount=3, workersOnStandbyCount=1, workersLateCount=1, startTime)
+  private val scenarioSpec = TestScenario.createScenarioSpec(workersPerWorkplaceCount=3, workersOnStandbyCount=1, workersLateCount=0, startTime)
 
   private val resolver = context.actorOf(Resolver.props(scenarioSpec), name = "resolver")
   private val enforcer: ActorRef = context.actorOf(Enforcer.props(resolver), name = "enforcer")
@@ -68,7 +73,9 @@ class Simulation() extends Actor with Timers {
     var remainingLateWorkers = scenarioSpec.workersLateCount
 
     def addWorker(wpId: String, idx: Int): Unit = {
-      if (remainingLateWorkers > 0) {
+      if (wpId == "A" && idx == 1) {
+        workers += context.actorOf(UserControlledWorkerInShift.props(f"$wpId%s-worker-$idx%03d", wpId, idx.toString, startTime), name = f"$wpId%s-worker-$idx%03d")
+      } else if (remainingLateWorkers > 0) {
         workers += context.actorOf(SimulatedLateWorkerInShift.props(f"$wpId%s-worker-$idx%03d", wpId, idx.toString, startTime), name = f"$wpId%s-worker-$idx%03d")
         remainingLateWorkers -= 1
       } else {
@@ -167,6 +174,25 @@ class Simulation() extends Actor with Timers {
     )
   }
 
+  private def processAccess(workerId: String): Unit = {
+    import context.dispatcher
+    implicit val timeout = Timeout(1 second)
+
+    workers.find(worker => worker.path.name == workerId) match {
+      case Some(worker) =>
+        val workerPermissions = currentPermissions.filter({
+          case AllowPermission(`workerId`, verb, obj) => true
+          case _ => false
+        })
+
+        (worker ? WorkerAccess(workerPermissions)).pipeTo(sender())
+
+      case None =>
+        sender() ! AccessResult("none")
+    }
+  }
+
+
   private def processEvents(events: List[ScenarioEvent]): Unit = {
     for (event <- events) {
       val oldState = workerStates.getOrElse(event.person, WorkerState(null, false, None))
@@ -174,8 +200,12 @@ class Simulation() extends Actor with Timers {
       var hasHeadGear = oldState.hasHeadGear
       var standbyFor = oldState.standbyFor
 
-      if (event.eventType == "access-dispenser") {
+      if (event.eventType == "retrieve-head-gear") {
         hasHeadGear = true
+      }
+
+      if (event.eventType == "return-head-gear") {
+        hasHeadGear = false
       }
 
       if (event.eventType == "take-over") {
@@ -202,6 +232,7 @@ class Simulation() extends Actor with Timers {
     case Pause => processPause()
     case Reset => processReset()
     case Status => processStatus()
+    case Access(workerId) => processAccess(workerId)
 
     case Tick => processTick()
 

@@ -5,7 +5,7 @@ import java.time.{Duration, LocalDateTime}
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import trust40.k4case.Simulation.{Events, Reset, WorkerStep}
+import trust40.k4case.Simulation.{Events, Reset, WorkerAccess, WorkerStep}
 
 import scala.collection.mutable
 import scala.util.Random
@@ -58,9 +58,14 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
     override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "take-over", person, position, List(replacedWorkerId)))
   }
 
-  private class AccessDispenserAction(timestamp: LocalDateTime, dispenserPosition: Position) extends Action(timestamp, Duration.ZERO, dispenserPosition, dispenserPosition) {
-    override def toString: String = s"AccessDispenserAction($timestamp, $dispenserPosition)"
-    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "access-dispenser", person, dispenserPosition, List()))
+  private class RetrieveHeadGearAction(timestamp: LocalDateTime, dispenserPosition: Position) extends Action(timestamp, Duration.ZERO, dispenserPosition, dispenserPosition) {
+    override def toString: String = s"RetrieveHeadGearAction($timestamp, $dispenserPosition)"
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "retrieve-head-gear", person, dispenserPosition, List()))
+  }
+
+  private class ReturnHeadGearAction(timestamp: LocalDateTime, dispenserPosition: Position) extends Action(timestamp, Duration.ZERO, dispenserPosition, dispenserPosition) {
+    override def toString: String = s"ReturnHeadGearAction($timestamp, $dispenserPosition)"
+    override def getEvents(currentTimestamp: LocalDateTime): List[ScenarioEvent] = List(ScenarioEvent(timestamp, "return-head-gear", person, dispenserPosition, List()))
   }
 
   private class WaitAction(timestamp: LocalDateTime, duration: Duration, position: Position) extends Action(timestamp, duration, position, position) {
@@ -138,7 +143,8 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
 
   protected def takeOver(replacedWorkerId: String): Unit = futureActions += new TakeOverAction(lastActionTime, lastActionPosition, replacedWorkerId)
 
-  protected def accessDispenser(): Unit = futureActions += new AccessDispenserAction(lastActionTime, lastActionPosition)
+  protected def retrieveHeadGear(): Unit = futureActions += new RetrieveHeadGearAction(lastActionTime, lastActionPosition)
+  protected def returnHeadGear(): Unit = futureActions += new ReturnHeadGearAction(lastActionTime, lastActionPosition)
 
   protected def waitRandom(minDuration: Duration, maxDuration: Duration): Unit = {
     val duration = minDuration plusSeconds random.nextInt((maxDuration minus minDuration).getSeconds().asInstanceOf[Int])
@@ -163,6 +169,10 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   protected def generateActions() {}
   protected def generateInitialActions() {}
 
+  protected def processAccess(workerPermissions: List[Permission]): Unit = {
+    sender() ! AccessResult("none")
+  }
+
   private def processStep(currentTime: LocalDateTime, notifications: List[(String, List[String])]): Unit = {
     currentNotifications = notifications
     val events = generateEvents(currentTime)
@@ -185,6 +195,7 @@ abstract class AbstractSimulatedWorker(val person: String, val startPosition: Po
   def receive = {
     case WorkerStep(currentTime, notifications) => processStep(currentTime, notifications)
     case Reset(epoch) => processReset(epoch)
+    case WorkerAccess(workerPermissions) => processAccess(workerPermissions)
   }
 }
 
@@ -210,7 +221,7 @@ class SimulatedWorkerInShift(person: String, val wpId: String, val inShiftId: St
     accessDoor()
     move("Dispenser")
     waitTillAfterStart(30 minutes)
-    accessDispenser()
+    retrieveHeadGear()
     move(s"JunctionToWorkPlaceGate-$wpId")
     move(s"InFrontOfWorkPlaceGate-$wpId")
     waitTillAfterStart(40 minutes)
@@ -225,6 +236,10 @@ class SimulatedWorkerInShift(person: String, val wpId: String, val inShiftId: St
     accessDoor()
     move(s"InFrontOfWorkPlaceGate-$wpId")
     move(s"JunctionToWorkPlaceGate-$wpId")
+
+    move("Dispenser")
+    returnHeadGear()
+
     move("MainGate")
     accessDoor()
     move("InFrontOfMainGate")
@@ -286,7 +301,7 @@ class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: 
         move("MainGate")
         accessDoor()
         move("Dispenser")
-        accessDispenser()
+        retrieveHeadGear()
         move(s"JunctionToWorkPlaceGate-$forWpId")
         move(s"InFrontOfWorkPlaceGate-$forWpId")
         move(s"WorkPlaceGate-$forWpId")
@@ -300,6 +315,8 @@ class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: 
         accessDoor()
         move(s"InFrontOfWorkPlaceGate-$forWpId")
         move(s"JunctionToWorkPlaceGate-$forWpId")
+        move("Dispenser")
+        returnHeadGear()
         move("MainGate")
         accessDoor()
         move("InFrontOfMainGate")
@@ -308,3 +325,128 @@ class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: 
     }
   }
 }
+
+
+object UserControlledWorkerInShift {
+  def props(person: String, wpId: String, inShiftId: String, startTime: LocalDateTime) = Props(new UserControlledWorkerInShift(person, wpId, inShiftId, startTime))
+}
+
+class UserControlledWorkerInShift(person: String, val wpId: String, val inShiftId: String, startTime: LocalDateTime)
+  extends AbstractSimulatedWorker(person, FactoryMap(s"Init-$wpId$inShiftId"), startTime) {
+
+  object Stage extends Enumeration {
+    val MOVING_TO_FACTORY = Value
+    val IN_FRONT_OF_FACTORY = Value
+    val MOVING_TO_DISPENSER = Value
+    val IN_FRONT_OF_DISPENSER = Value
+    val MOVING_TO_WORKPLACE = Value
+    val IN_FRONT_OF_WORKPLACE = Value
+    val FINISHING_SHIFT = Value
+    val RETURNING = Value
+    type Stage = Value
+  }
+
+  import Stage._
+  var stage: Stage = MOVING_TO_FACTORY
+
+  override protected def generateInitialActions(): Unit = {
+    move("InFrontOfMainGate")
+    move("MainGate")
+
+    stage = MOVING_TO_FACTORY
+  }
+
+  override protected def generateActions(): Unit = {
+    stage match {
+      case MOVING_TO_FACTORY =>
+        stage = IN_FRONT_OF_FACTORY
+
+      case MOVING_TO_DISPENSER =>
+        stage = IN_FRONT_OF_DISPENSER
+
+      case MOVING_TO_WORKPLACE =>
+        stage = IN_FRONT_OF_WORKPLACE
+
+      case _ =>
+    }
+  }
+
+  override protected def processAccess(workerPermissions: List[Permission]): Unit = {
+    def validateAccess(verb: String, obj: String): Boolean = {
+      if (workerPermissions.exists({
+        case AllowPermission(`person`, `verb`, `obj`) => true
+        case _ => false
+      })) {
+        sender() ! AccessResult("allowed")
+        true
+      } else {
+        sender() ! AccessResult("not allowed")
+        false
+      }
+    }
+
+    stage match {
+      case IN_FRONT_OF_FACTORY =>
+        if (validateAccess("enter", "factory")) {
+          accessDoor()
+          move("Dispenser")
+          stage = MOVING_TO_DISPENSER
+
+        } else {
+          move(s"Init-$wpId$inShiftId")
+          stage = RETURNING
+        }
+
+      case IN_FRONT_OF_DISPENSER =>
+        if (validateAccess("use", "dispenser")) {
+          retrieveHeadGear()
+          move(s"JunctionToWorkPlaceGate-$wpId")
+          move(s"InFrontOfWorkPlaceGate-$wpId")
+          move(s"WorkPlaceGate-$wpId")
+          stage = MOVING_TO_WORKPLACE
+
+        } else {
+          move("MainGate")
+          move("InFrontOfMainGate")
+          move(s"Init-$wpId$inShiftId")
+          stage = RETURNING
+        }
+
+      case IN_FRONT_OF_WORKPLACE =>
+        if (validateAccess("enter", "workplace-A")) {
+          accessDoor()
+          move(s"InWorkPlace-$wpId$inShiftId")
+          waitTillAfterStart(9 hours)
+          waitRandom(2 minutes, 5 minutes)
+          move(s"WorkPlaceGate-$wpId")
+          accessDoor()
+          move(s"InFrontOfWorkPlaceGate-$wpId")
+          move(s"JunctionToWorkPlaceGate-$wpId")
+          move("Dispenser")
+          returnHeadGear()
+          move("MainGate")
+          accessDoor()
+          move("InFrontOfMainGate")
+          move(s"Init-$wpId$inShiftId")
+          stage = FINISHING_SHIFT
+
+        } else {
+          move(s"InFrontOfWorkPlaceGate-$wpId")
+          move(s"JunctionToWorkPlaceGate-$wpId")
+          move("Dispenser")
+          returnHeadGear()
+          move("MainGate")
+          accessDoor()
+          move("InFrontOfMainGate")
+          move(s"Init-$wpId$inShiftId")
+          stage = RETURNING
+        }
+
+      case _ =>
+        sender() ! AccessResult("none")
+    }
+
+  }
+
+}
+

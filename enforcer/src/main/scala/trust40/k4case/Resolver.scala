@@ -43,8 +43,12 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
       val worker = scenario.workersMap(event.person)
       worker.position = event.position
 
-      if (event.eventType == "access-dispenser") {
+      if (event.eventType == "retrieve-head-gear") {
         worker.hasHeadGear = true
+      }
+
+      if (event.eventType == "return-head-gear") {
+        worker.hasHeadGear = false
       }
     }
 

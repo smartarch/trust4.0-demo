@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import trust40.k4case.{FactoryMap, Simulation, SimulationState}
+import trust40.k4case.{AccessResult, FactoryMap, Simulation, SimulationState}
 import akka.pattern.ask
 
 import scala.concurrent.duration._
@@ -48,6 +48,11 @@ object Main extends MarshallersSupport {
         get {
           complete((simulation ? Simulation.Status).mapTo[SimulationState])
         }
+      } ~
+        path("access" / Segment) { workerId =>
+          post {
+            complete((simulation ? Simulation.Access(workerId)).mapTo[AccessResult])
+          }
       }
 
 

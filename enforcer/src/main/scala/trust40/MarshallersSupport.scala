@@ -2,7 +2,7 @@ package trust40
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.{DefaultJsonProtocol, JsNumber, JsValue, JsonFormat, deserializationError}
-import trust40.k4case.{Position, Simulation, SimulationState, WorkerState}
+import trust40.k4case.{AccessResult, Position, Simulation, SimulationState, WorkerState}
 
 trait MarshallersSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object SimulationStateStateJsonFormat extends JsonFormat[Simulation.State.State] {
@@ -16,4 +16,5 @@ trait MarshallersSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val positionFormat = jsonFormat2(Position)
   implicit val workerStateFormat = jsonFormat3(WorkerState)
   implicit val simulationStateFormat = jsonFormat4(SimulationState)
+  implicit val accessResultFormat = jsonFormat1(AccessResult)
 }
