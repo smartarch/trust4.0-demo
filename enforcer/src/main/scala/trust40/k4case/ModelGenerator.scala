@@ -19,7 +19,8 @@ trait ModelGenerator {
           yield wpId -> new WorkPlace(
             s"workplace-$wpId",
             new Area(FactoryMap(s"WorkPlace-$wpId-TL"), FactoryMap(s"WorkPlace-$wpId-BR")),
-            new Door(s"gate-$wpId")
+            new Door(s"gate-$wpId"),
+            new Machine(s"machine-$wpId")
           )
         ): _*)
 

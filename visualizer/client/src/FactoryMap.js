@@ -384,6 +384,9 @@ const AccessResultToSwipeCardStateMapping = {
                                     Gate2: node => node.style('fill', getPlaceColor('enter workplace-B')),
                                     Gate3: node => node.style('fill', getPlaceColor('enter workplace-C')),
                                     Dispenser: node => node.style('fill', getPlaceColor('use dispenser')),
+                                    MachineA: node => node.style('fill', getPlaceColor('read(aggregatedTemperature) machine-A')),
+                                    MachineB: node => node.style('fill', getPlaceColor('read(aggregatedTemperature) machine-B')),
+                                    MachineC: node => node.style('fill', getPlaceColor('read(aggregatedTemperature) machine-C')),
                                     Workers: node => {
                                         const workers = this.state.workers;
 

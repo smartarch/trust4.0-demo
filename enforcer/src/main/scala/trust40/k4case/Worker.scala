@@ -281,6 +281,8 @@ class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: 
   var forInShiftId: String = _
 
   override protected def generateInitialActions(): Unit = {
+    forWpId = null
+    forInShiftId = null
   }
 
   override protected def generateActions(): Unit = {

@@ -70,6 +70,14 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
     override def toString = s"Dispenser($id)"
   }
 
+  class Machine(
+                   val id: String,
+                 ) extends Component with WithId {
+    name(s"Machine ${id}")
+
+    override def toString = s"Machine ($id)"
+  }
+
   class Worker(
                 val id: String,
                 var position: Position,
@@ -96,7 +104,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
   class WorkPlace(
                    id: String,
                    area: Area,
-                   entryDoor: Door
+                   entryDoor: Door,
+                   val machine: Machine
                  ) extends Room(id, area, entryDoor) {
     name(s"WorkPlace ${id}")
 
@@ -208,6 +217,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
             (now isEqualOrBefore shift.endTime)
         }
 
+        allow(shift.foreman, Use, shift.workPlace.factory.dispenser)
         allow(assignedWorkers, Use, shift.workPlace.factory.dispenser)
       }
 
@@ -224,6 +234,30 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         allow(workersWithHeadGear, Enter, shift.workPlace)
       }
 
+      object AccessToMachine extends Ensemble {
+        name(s"AccessToMachine")
+
+        val workersAtWorkplace = shift.foreman :: assignedWorkers
+
+        situation {
+          (now isEqualOrAfter shift.startTime) && (now isEqualOrBefore shift.endTime)
+        }
+
+        workersAtWorkplace.foreach(wrk => notify(shift.foreman, WorkerPotentiallyLateNotification(shift, wrk)))
+
+        allow(workersAtWorkplace, Read("aggregatedTemperature"), shift.workPlace.machine)
+        allow(workersAtWorkplace, Read("temperature"), shift.workPlace.machine)
+      }
+
+
+      object NoAccessToMachineSensitiveDataOtherThanFromWorkplace extends Ensemble {
+        name(s"NoAccessToMachineSensitiveDataOtherThanFromWorkplace")
+
+        val workersAtWorkplace = (shift.foreman :: assignedWorkers).filter(wrk => !(wrk isAt shift.workPlace))
+
+        deny(workersAtWorkplace, Read("*"), shift.workPlace.machine, PrivacyLevel.SENSITIVE)
+      }
+
       object NotificationAboutWorkersThatArePotentiallyLate extends Ensemble {
         name(s"NotificationAboutWorkersThatArePotentiallyLate")
 
@@ -235,7 +269,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
         workersThatAreLate.foreach(wrk => notify(shift.foreman, WorkerPotentiallyLateNotification(shift, wrk)))
 
-        allow(shift.foreman, Read("personalData.phoneNo"), workersThatAreLate) // FIX to state the sub action on the subject
+        allow(shift.foreman, Read("phoneNo"), workersThatAreLate)
         allow(shift.foreman, Read("distanceToWorkPlace"), workersThatAreLate)
       }
 
@@ -291,8 +325,8 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
           val workers = shift.workers diff workersPotentiallyLate
 
-          deny(shift.foreman, Read("personalData"), workers, PrivacyLevel.ANY)
-          deny(shift.foreman, Read("personalData"), workersPotentiallyLate, PrivacyLevel.SENSITIVE)
+          deny(shift.foreman, Read("*"), workers, PrivacyLevel.ANY)
+          deny(shift.foreman, Read("*"), workersPotentiallyLate, PrivacyLevel.SENSITIVE)
       }
 
       rules(
@@ -300,12 +334,14 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
         AccessToFactory,
         AccessToDispenser,
         AccessToWorkplace,
+        AccessToMachine,
         NotificationAboutWorkersThatArePotentiallyLate,
         CancellationOfWorkersThatAreLate,
         AssignmentOfStandbys,
 
         // Assertions
-        NoAccessToPersonalDataExceptForLateWorkers
+        NoAccessToPersonalDataExceptForLateWorkers,
+        NoAccessToMachineSensitiveDataOtherThanFromWorkplace
       )
     }
 
