@@ -685,7 +685,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.99999999"
-     inkscape:cx="485.05503"
+     inkscape:cx="490.61245"
      inkscape:cy="377.89858"
      inkscape:document-units="mm"
      inkscape:current-layer="GroundPlan"
@@ -876,7 +876,7 @@
            y="102.32563" /></flowRegion><flowPara
          id="flowPara4988">WP3</flowPara></flowRoot>    <g
        transform="matrix(0.2166086,0,0,0.2166086,184.4789,49.728256)"
-       id="MachineIcon1">
+       id="MachineIconA">
       <rect
          style="fill:#000080;fill-rule:nonzero;stroke:none;stroke-width:1"
          height="11"
@@ -970,14 +970,14 @@
     </g>
     <rect
        style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="Machine1"
+       id="MachineA"
        width="16.066664"
        height="14.418797"
        x="182.19209"
        y="46.14793" />
     <g
        transform="matrix(0.2166086,0,0,0.2166086,278.31014,32.263814)"
-       id="MachineIcon2">
+       id="MachineIconB">
       <rect
          style="fill:#000080;fill-rule:nonzero;stroke:none;stroke-width:1"
          height="11"
@@ -1071,14 +1071,14 @@
     </g>
     <rect
        style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="Machine2"
+       id="MachineB"
        width="16.066664"
        height="14.418797"
        x="276.02341"
        y="28.683502" />
     <g
        transform="matrix(0.2166086,0,0,0.2166086,279.07093,142.31102)"
-       id="MachineIcon3">
+       id="MachineIconC">
       <rect
          style="fill:#000080;fill-rule:nonzero;stroke:none;stroke-width:1"
          height="11"
@@ -1172,7 +1172,7 @@
     </g>
     <rect
        style="opacity:1;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.60000002;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="Machine3"
+       id="MachineC"
        width="16.066664"
        height="14.418797"
        x="276.78412"
