@@ -22,10 +22,22 @@ const State = {
     PLAYING: 1,
     PAUSED: 2,
     END: 3
-}
+};
+
+const SwipeCardState = {
+    IDLE: 'info',
+    ALLOWED: 'success',
+    NOT_ALLOWED: 'danger'
+};
 
 const refreshInterval = 50;
 const minorStepsInRefetchPeriod = 5;
+
+const AccessResultToSwipeCardStateMapping = {
+    'none': SwipeCardState.IDLE,
+    'allowed': SwipeCardState.ALLOWED,
+    'not allowed': SwipeCardState.NOT_ALLOWED
+};
 
 @withComponentMixins([
     withTranslation,
@@ -38,10 +50,13 @@ const minorStepsInRefetchPeriod = 5;
 
         this.state = {
             playState: State.START,
+            swipeCardState: SwipeCardState.IDLE,
             ts: null,
             workers: [],
             selectedWorker: null
         };
+
+        this.swipeCardTimeout = null;
 
         this.reset();
 
@@ -82,6 +97,22 @@ const minorStepsInRefetchPeriod = 5;
         this.setState({
             playState: State.PAUSED
         });
+    }
+
+    @withAsyncErrorHandler
+    async swipeCard(selWorkerId) {
+        const resp = await axios.post(getUrl('sim/access/' + selWorkerId));
+
+        this.setState({
+            swipeCardState: AccessResultToSwipeCardStateMapping[resp.data.result]
+        });
+
+        clearTimeout(this.swipeCardTimeout);
+        this.swipeCardTimeout = setTimeout(() => {
+            this.setState({
+                swipeCardState: SwipeCardState.IDLE
+            });
+        }, 1000)
     }
 
     @withAsyncErrorHandler
@@ -149,6 +180,8 @@ const minorStepsInRefetchPeriod = 5;
                             let symbol;
                             if (key.endsWith('foreman')) {
                                 symbol = 'foreman';
+                            } else if (key === 'A-worker-001') {
+                                symbol = 'user';
                             } else {
                                 symbol = 'worker'
                             }
@@ -203,9 +236,11 @@ const minorStepsInRefetchPeriod = 5;
         const ts = this.state.ts;
         const tsFormatted = ts ? ts.utc().format('HH:mm:ss') : null;
 
+        /*
         if (this.state.permissions && this.state.permissions.length > 0) {
             console.log(this.state.permissions);
         }
+         */
 
         const handleHeaderRect = sigCid => {
             return node => node.style('fill', data[sigCid] > 0.01 ? 'lime' : 'red');
@@ -292,18 +327,23 @@ const minorStepsInRefetchPeriod = 5;
             <Panel title={t('Factory Map')}>
                 <div className="row">
                     <div className="col-12 col-lg-9">
-                        <div>
-                            { playState === State.PLAYING &&
-                                <Button className={`btn-primary ${styles.controlButton}`} icon="pause" onClickAsync={::this.pause} />
-                            }
-                            { (playState === State.START || playState === State.PAUSED) &&
-                            <Button className={`btn-primary ${styles.controlButton}`} icon="play" onClickAsync={::this.play} />
-                            }
-                            { (playState === State.END) &&
-                            <Button className={`btn-primary ${styles.controlButton}`} icon="play" disabled={true} />
-                            }
-                            <Button className={`btn-danger ${styles.controlButton}`} icon="stop" onClickAsync={::this.stop} disabled={playState === State.START}/>
-                            <span className={styles.timestamp}>{tsFormatted}</span>
+                        <div className="row">
+                            <div className="col-12 col-lg-9 mb-3">
+                                { playState === State.PLAYING &&
+                                    <Button className={`btn-primary ${styles.controlButton}`} icon="pause" onClickAsync={::this.pause} />
+                                }
+                                { (playState === State.START || playState === State.PAUSED) &&
+                                <Button className={`btn-primary ${styles.controlButton}`} icon="play" onClickAsync={::this.play} />
+                                }
+                                { (playState === State.END) &&
+                                <Button className={`btn-primary ${styles.controlButton}`} icon="play" disabled={true} />
+                                }
+                                <Button className={`btn-danger ${styles.controlButton}`} icon="stop" onClickAsync={::this.stop} disabled={playState === State.START}/>
+                                <span className={styles.timestamp}>{tsFormatted}</span>
+                            </div>
+                            <div className="col-12 col-lg-3 mb-3 text-lg-right">
+                                {selWorkerId && <Button className={`btn-${this.state.swipeCardState} ${styles.controlButton}`} icon="id-card" label={t('Swipe card')} onClickAsync={async () => await this.swipeCard(selWorkerId)} />}
+                            </div>
                         </div>
                         <div>
                             <SVG

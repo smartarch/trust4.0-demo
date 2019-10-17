@@ -4,7 +4,6 @@ require('./extensions-common');
 
 const em = require('../ivis-core/server/lib/extension-manager');
 const path = require('path');
-const sim = require('./routes/sim');
 
 em.set('app.clientDist', path.join(__dirname, '..', 'client', 'dist'));
 
@@ -14,7 +13,13 @@ em.on('knex.migrate', async () => {
 });
 
 em.on('app.installRoutes', app => {
+    const sim = require('./routes/sim');
     app.use('/sim', sim);
+});
+
+em.on('app.installAPIRoutes', app => {
+    const cardApi = require('./routes/card');
+    app.use('/', cardApi);
 });
 
 require('../ivis-core/server/index');
