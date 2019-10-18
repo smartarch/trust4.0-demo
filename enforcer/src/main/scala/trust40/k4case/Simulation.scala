@@ -14,6 +14,7 @@ import scala.concurrent.duration._
 case class WorkerState(position: Position, hasHeadGear: Boolean, standbyFor: Option[String])
 case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
 case class AccessResult(result: String)
+case class ValidateResult(allowed: Boolean)
 
 object Simulation {
   def props() = Props(new Simulation())
@@ -23,6 +24,7 @@ object Simulation {
   case object Reset
   case object Status
   final case class Access(workerId: String)
+  final case class Validate(subjectId: String, verb: String, objectId: String)
 
   final case class Reset(epoch: Int)
   final case class Events(epoch: Int, events: List[ScenarioEvent])
@@ -192,6 +194,10 @@ class Simulation() extends Actor with Timers {
     }
   }
 
+  private def processValidate(subjectId: String, verb: String, objectId: String): Unit = {
+    sender() ! ValidateResult(currentPermissions.contains(AllowPermission(subjectId, verb, objectId)))
+  }
+
 
   private def processEvents(events: List[ScenarioEvent]): Unit = {
     for (event <- events) {
@@ -233,6 +239,7 @@ class Simulation() extends Actor with Timers {
     case Reset => processReset()
     case Status => processStatus()
     case Access(workerId) => processAccess(workerId)
+    case Validate(subjectId, verb, objectId) => processValidate(subjectId, verb, objectId)
 
     case Tick => processTick()
 

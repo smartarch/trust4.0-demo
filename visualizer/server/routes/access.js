@@ -15,4 +15,13 @@ router.getAsync('/access/:workerId', async (req, res) => {
     return res.json(resp.data);
 });
 
+router.getAsync('/validate/:subjectId/:verb/:objectId', async (req, res) => {
+    const resp = await axios.post(getEnforcerUrl(`validate/${req.params.subjectId}/${req.params.verb}/${req.params.objectId}`));
+    return res.json(resp.data);
+});
+
+// subjectId = A-foreman    verb = read(phoneNo)                  objectId = A-worker-001
+// subjectId = A-foreman    verb = read(aggregatedTemperature)    objectId = machine-A
+
+
 module.exports = router;

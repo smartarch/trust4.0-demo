@@ -18,8 +18,8 @@ em.on('app.installRoutes', app => {
 });
 
 em.on('app.installAPIRoutes', app => {
-    const cardApi = require('./routes/card');
-    app.use('/', cardApi);
+    const accessApi = require('./routes/access');
+    app.use('/', accessApi);
 });
 
 require('../ivis-core/server/index');
