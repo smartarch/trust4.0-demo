@@ -109,7 +109,7 @@ EOT
 # Wait for the other services to start
 while ! nc -z $mySqlHost 3306; do sleep 1; done
 while ! nc -z $redisHost 6379; do sleep 1; done
-while ! nc -z $mongoHost 27017; do sleep 1; done
+#while ! nc -z $mongoHost 27017; do sleep 1; done
 while ! nc -z $elasticsearchHost 9200; do sleep 1; done
 while ! mysql -h mysql -u trustvis --password=trustvis -e 'show databases'; do sleep 1; done
 
