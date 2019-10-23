@@ -5,8 +5,8 @@ import java.util.Objects;
 public class ReasonedAllowRule extends AllowRule {
     private final String reason;
 
-    public ReasonedAllowRule(final String subject, final String rename, final String object, final String reason) {
-        super(subject, rename, object);
+    public ReasonedAllowRule(final String subject, final Operation operation, final String object, final String reason) {
+        super(subject, operation, object);
         this.reason = reason;
     }
 

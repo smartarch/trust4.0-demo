@@ -325,7 +325,7 @@ class TestScenario(scenarioParams: TestScenarioSpec) extends Model with ModelGen
 
           val workers = shift.workers diff workersPotentiallyLate
 
-          deny(shift.foreman, Read("*"), workers, PrivacyLevel.ANY)
+          deny(shift.foreman, Read("*"), workers, PrivacyLevel.PUBLIC)
           deny(shift.foreman, Read("*"), workersPotentiallyLate, PrivacyLevel.SENSITIVE)
       }
 

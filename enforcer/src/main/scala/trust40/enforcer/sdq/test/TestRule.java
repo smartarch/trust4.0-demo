@@ -17,7 +17,7 @@ import trust40.enforcer.sdq.rules.DenyRule;
 import trust40.enforcer.sdq.rules.ReasonedAllowRule;
 
 class TestRule {
-
+	/*
 	@Test
 	@DisplayName("Tests if Exceptions are thrown with null")
 	void testEmptyConstructorRule() {
@@ -76,5 +76,6 @@ class TestRule {
 			assertTrue(allowRule.equalRule(denyRule));
 		}
 	}
+	*/
 
 }

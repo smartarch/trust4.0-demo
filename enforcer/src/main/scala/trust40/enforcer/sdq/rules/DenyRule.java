@@ -7,7 +7,7 @@ import java.util.Objects;
 public class DenyRule extends Rule {
     private PrivacyLevel privacyLevel;
 
-    public DenyRule(String subject, String action, String object, PrivacyLevel privacyLevel) {
+    public DenyRule(String subject, Operation action, String object, PrivacyLevel privacyLevel) {
         super(subject, action, object);
         if(privacyLevel == null)
         	throw new IllegalArgumentException("Privacylevel can't be null");
@@ -36,6 +36,6 @@ public class DenyRule extends Rule {
     }
     @Override
     public String toString() {
-    	return "[" + this.getSubject() + " " + this.getAction() + " " + this.getObject() + " " + getPrivacyLevel() + "]";
+    	return "[" + this.getSubject() + " " + this.getOperation() + " " + this.getObject() + " " + getPrivacyLevel() + "]";
     }
 }

@@ -3,7 +3,9 @@ package trust40.enforcer.tcof
 import scala.collection.mutable
 
 object PrivacyLevel extends Enumeration {
-  val ANY = Value("any")
+  val PUBLIC = Value("public")
+  val INTERNAL_USE = Value("internal use")
+  val HIGHLY_SENSITIVE = Value("highly sensitive")
   val SENSITIVE = Value("sensitive")
   type PrivacyLevel = Value
 }

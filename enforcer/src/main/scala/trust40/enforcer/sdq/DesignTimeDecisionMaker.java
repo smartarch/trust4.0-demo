@@ -3,9 +3,12 @@ package trust40.enforcer.sdq;
 import trust40.enforcer.sdq.rules.AllowRule;
 import trust40.enforcer.sdq.rules.DenyRule;
 import trust40.enforcer.sdq.rules.ReasonedAllowRule;
+import trust40.k4case.AllowPermission;
+import trust40.k4case.DenyPermission;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  *
@@ -53,7 +56,7 @@ public interface DesignTimeDecisionMaker {
      * @param denyRules Collection of {@link DenyRule}
      * @return Collection of {@link ReasonedAllowRule} or null in case of an internal error
      */
-    Collection<ReasonedAllowRule> validatePolicies(Collection<AllowRule> allowRules, Collection<DenyRule> denyRules) throws NullPointerException;
+    List<AllowPermission> validatePolicies(List<AllowPermission> allowRules, List<DenyPermission> denyRules) throws NullPointerException;
 
     /**
      * Reloads the privacyLevel File

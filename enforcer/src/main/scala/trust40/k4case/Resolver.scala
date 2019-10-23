@@ -4,13 +4,20 @@ import java.time.LocalDateTime
 
 import akka.actor.{Actor, Props}
 import akka.event.Logging
-import trust40.enforcer.tcof.{AllowAction, NotifyAction}
-import trust40.k4case.Simulation.{Reset}
+import trust40.enforcer.sdq.DesignTimeDecisionMakerImpl
+import collection.mutable._
+import scala.collection.JavaConverters._
+import scala.collection.JavaConverters._
+import trust40.enforcer.tcof.PrivacyLevel.PrivacyLevel
+import trust40.enforcer.tcof.{AllowAction, DenyAction, NotifyAction}
+import trust40.k4case.Simulation.Reset
+
 
 import scala.collection.mutable
 
 abstract class Permission
 case class AllowPermission(subj: String, verb: String, obj: String) extends Permission
+case class DenyPermission(subj:String, ver:String,obj:String, lvl:PrivacyLevel) extends Permission
 case class ComponentNotification(subj: String, action: String, params: List[String])
 
 object Resolver {
@@ -37,6 +44,7 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
     // log.info("Time: " + currentTime)
     // log.info("Events: " + events)
 
+
     scenario.now = currentTime
 
     for (event <- events) {
@@ -52,15 +60,16 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
       }
     }
 
-    val perms = mutable.ListBuffer.empty[Permission]
+    val perms = mutable.ListBuffer.empty[AllowPermission]
+    val deny = mutable.ListBuffer.empty[DenyPermission]
     val notifs = mutable.ListBuffer.empty[ComponentNotification]
-
+    var networkPermission: List[AllowPermission] = null;
     val factoryTeam = scenario.factoryTeam
+
     factoryTeam.init()
     factoryTeam.solverLimitTime(solverLimitTime)
     factoryTeam.solve()
-
-    if (factoryTeam.exists) {
+        if (factoryTeam.exists) {
       // log.info("Utility: " + shiftTeams.instance.solutionUtility)
       // log.info(shiftTeams.instance.toString)
 
@@ -71,21 +80,24 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
         action match {
           case AllowAction(subj: WithId, verb, obj: WithId) =>
             perms += AllowPermission(subj.id, verb.toString, obj.id)
+          case DenyAction(subj: WithId, verb, obj: WithId, privacyLevel) =>
+            deny += DenyPermission(subj.id, verb.toString, obj.id, privacyLevel)
           case NotifyAction(subj: WithId, notif) =>
             notifs += ComponentNotification(subj.id, notif.getType, notif.getParams)
           case _ =>
         }
       }
-
+      val rules = new DesignTimeDecisionMakerImpl
+      networkPermission = rules.validatePolicies(perms.toList.asJava,deny.toList.asJava).asScala.toList
       // call to KIT <- factoryTeam.actions ... => consistent set of action
-
+      println("Test")
     } else {
       log.error("Error. No solution exists.")
     }
 
     // log.info("Resolver finished")
 
-    sender() ! ResolverResult(currentEpoch, perms.toList, notifs.toList)
+    sender() ! ResolverResult(currentEpoch, networkPermission, notifs.toList)
   }
 
   private def processReset(epoch: Int): Unit = {

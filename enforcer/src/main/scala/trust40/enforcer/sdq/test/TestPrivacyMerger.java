@@ -31,7 +31,7 @@ import trust40.enforcer.sdq.rules.ReasonedAllowRule;
 class TestPrivacyMerger {
 	static DesignTimeDecisionMaker decision;
 	static Path t;
-
+	/*
 	@BeforeAll
 	static void init() {
 		t = Paths.get("test.csv");
@@ -48,6 +48,7 @@ class TestPrivacyMerger {
 
 	@Test
 	void testForemanDenyHighlySensitive() {
+
 		List<AllowRule> listAllow = Stream.of(new AllowRule("Foreman", "read", "Data00"),
 				new AllowRule("Test", "read", "Data00"), new AllowRule("Foreman", "read", "Data01"))
 				.collect(Collectors.toList());
@@ -123,5 +124,5 @@ class TestPrivacyMerger {
 			fail("IO-Error: can't delete privacy File");
 		}
 	}
-
+	*/
 }

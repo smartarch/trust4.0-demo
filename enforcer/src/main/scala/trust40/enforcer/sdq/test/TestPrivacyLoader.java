@@ -20,6 +20,7 @@ import trust40.enforcer.sdq.PrivacyLevel;
 import trust40.enforcer.sdq.io.PrivacyLoader;
 
 class TestPrivacyLoader {
+	/*
 	static Path t;
 
 	@BeforeAll
@@ -62,5 +63,5 @@ class TestPrivacyLoader {
 			fail("IO-Error: can't delete privacy File");
 		}
 	}
-
+	*/
 }

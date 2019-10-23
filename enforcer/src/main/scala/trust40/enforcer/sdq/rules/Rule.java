@@ -4,18 +4,18 @@ import java.util.Objects;
 
 public abstract class Rule {
     private final String subject;
-    private final String action;
+    private final Operation operation;
     private final String object;
 
-    public Rule(String subject, String action, String object) {
+    public Rule(String subject, Operation operation, String object) {
     	if(subject == null)
     		throw new IllegalArgumentException("subject is null");
-    	if(action == null)
+    	if(operation == null)
     		throw new IllegalArgumentException("subject is null");
     	if(object == null)
     		throw new IllegalArgumentException("subject is null");
         this.subject = subject;
-        this.action = action;
+        this.operation = operation;
         this.object = object;
     }
 
@@ -26,20 +26,20 @@ public abstract class Rule {
         if (o == null || getClass() != o.getClass())
             return false;
         Rule rule = (Rule) o;
-        return subject.equals(rule.subject) && action.equals(rule.action) && object.equals(rule.object);
+        return subject.equals(rule.subject) && operation.equals(rule.operation) && object.equals(rule.object);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subject, action, object);
+        return Objects.hash(subject, operation, object);
     }
 
     public final String getSubject() {
         return subject;
     }
 
-    public final String getAction() {
-        return action;
+    public final Operation getOperation() {
+        return operation;
     }
 
     public final String getObject() {
@@ -51,12 +51,12 @@ public abstract class Rule {
             return false;
         if (this.equals(f))
             return true;
-        return f.action.equals(this.action) && f.object.equals(this.object) && f.subject.equals(this.subject);
+        return f.operation.equals(this.operation) && f.object.equals(this.object) && f.subject.equals(this.subject);
     }
 
     @Override
     public String toString() {
-        return "[" + subject + " " + action + " " + object + "]";
+        return "[" + subject + " " + operation + " " + object + "]";
     }
 
 }

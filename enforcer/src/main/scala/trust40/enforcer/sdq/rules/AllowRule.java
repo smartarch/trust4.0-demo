@@ -5,7 +5,8 @@ package trust40.enforcer.sdq.rules;
  */
 public class AllowRule extends Rule {
 
-    public AllowRule(String subject, String rename, String object) {
-        super(subject, rename, object);
+
+    public AllowRule(String subject, Operation operation, String object) {
+        super(subject, operation, object);
     }
 }
