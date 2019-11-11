@@ -1,13 +1,15 @@
 package trust40.enforcer.sdq.rules;
 
+import scala.Enumeration;
 import trust40.enforcer.sdq.PrivacyLevel;
+import trust40.k4case.DenyPermission;
 
 import java.util.Objects;
 
 public class DenyRule extends Rule {
     private PrivacyLevel privacyLevel;
 
-    public DenyRule(String subject, Operation action, String object, PrivacyLevel privacyLevel) {
+    public DenyRule(DataObject subject, Operation action, DataObject object, PrivacyLevel privacyLevel) {
         super(subject, action, object);
         if(privacyLevel == null)
         	throw new IllegalArgumentException("Privacylevel can't be null");
@@ -37,5 +39,9 @@ public class DenyRule extends Rule {
     @Override
     public String toString() {
     	return "[" + this.getSubject() + " " + this.getOperation() + " " + this.getObject() + " " + getPrivacyLevel() + "]";
+    }
+
+    public DenyPermission getScalaPermission(){
+        return new DenyPermission(getSubject().getValue(),getOperation().toString(),getObject().getValue(), trust40.enforcer.tcof.PrivacyLevel.withName(getPrivacyLevel().toString()));
     }
 }

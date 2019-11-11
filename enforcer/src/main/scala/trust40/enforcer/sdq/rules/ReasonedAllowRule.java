@@ -5,7 +5,7 @@ import java.util.Objects;
 public class ReasonedAllowRule extends AllowRule {
     private final String reason;
 
-    public ReasonedAllowRule(final String subject, final Operation operation, final String object, final String reason) {
+    public ReasonedAllowRule(final DataObject subject, final Operation operation, final DataObject object, final String reason) {
         super(subject, operation, object);
         this.reason = reason;
     }

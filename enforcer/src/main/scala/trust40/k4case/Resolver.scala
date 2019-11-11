@@ -65,7 +65,8 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
     val notifs = mutable.ListBuffer.empty[ComponentNotification]
     var networkPermission: List[AllowPermission] = null;
     val factoryTeam = scenario.factoryTeam
-
+    val listDenyRulesApp = mutable.ListBuffer.empty[DenyPermission];
+    val rejectedRules = new java.util.HashMap[AllowPermission, java.util.List[DenyPermission]];
     factoryTeam.init()
     factoryTeam.solverLimitTime(solverLimitTime)
     factoryTeam.solve()
@@ -88,7 +89,7 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
         }
       }
       val rules = new DesignTimeDecisionMakerImpl
-      networkPermission = rules.validatePolicies(perms.toList.asJava,deny.toList.asJava).asScala.toList
+      networkPermission = rules.validatePolicies(perms.toList.asJava,deny.toList.asJava,rejectedRules).asScala.toList
       // call to KIT <- factoryTeam.actions ... => consistent set of action
       println("Test")
     } else {

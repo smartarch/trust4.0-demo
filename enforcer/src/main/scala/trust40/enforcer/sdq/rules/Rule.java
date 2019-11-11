@@ -3,11 +3,11 @@ package trust40.enforcer.sdq.rules;
 import java.util.Objects;
 
 public abstract class Rule {
-    private final String subject;
+    private final DataObject subject;
     private final Operation operation;
-    private final String object;
+    private final DataObject object;
 
-    public Rule(String subject, Operation operation, String object) {
+    public Rule(DataObject subject, Operation operation, DataObject object) {
     	if(subject == null)
     		throw new IllegalArgumentException("subject is null");
     	if(operation == null)
@@ -34,7 +34,7 @@ public abstract class Rule {
         return Objects.hash(subject, operation, object);
     }
 
-    public final String getSubject() {
+    public final DataObject getSubject() {
         return subject;
     }
 
@@ -42,7 +42,7 @@ public abstract class Rule {
         return operation;
     }
 
-    public final String getObject() {
+    public final DataObject getObject() {
         return object;
     }
 
@@ -51,7 +51,7 @@ public abstract class Rule {
             return false;
         if (this.equals(f))
             return true;
-        return f.operation.equals(this.operation) && f.object.equals(this.object) && f.subject.equals(this.subject);
+        return f.operation.equalOperation(getOperation()) && subject.getType().equals(f.subject.getType()) && object.getType().equals(f.object.getType());
     }
 
     @Override

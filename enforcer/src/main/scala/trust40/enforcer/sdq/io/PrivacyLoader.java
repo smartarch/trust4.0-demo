@@ -1,9 +1,14 @@
 package trust40.enforcer.sdq.io;
 
+import trust40.enforcer.sdq.DesignTimeDecisionMakerImpl;
 import trust40.enforcer.sdq.PrivacyLevel;
+import trust40.enforcer.sdq.rules.DataObject;
+import trust40.enforcer.sdq.rules.Operation;
+import trust40.enforcer.sdq.rules.PrivacyTable;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -30,8 +35,8 @@ public class PrivacyLoader extends CSVLoader {
      * @return Map with key object id and value {@link PrivacyLevel}
      * @throws IOException If there are errors during the file reading
      */
-    public Map<String, PrivacyLevel> getPrivacyMap() throws IOException {
-        String[][] privacyStrings = super.loadCSVFile(2);
-        return createMap(privacyStrings);
+    public PrivacyTable getPrivacyTable() throws IOException {
+        String[][] privacyStrings = loadCSVFile(4);
+        return new PrivacyTable(privacyStrings);
     }
 }

@@ -9,6 +9,7 @@ import trust40.k4case.DenyPermission;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -56,7 +57,7 @@ public interface DesignTimeDecisionMaker {
      * @param denyRules Collection of {@link DenyRule}
      * @return Collection of {@link ReasonedAllowRule} or null in case of an internal error
      */
-    List<AllowPermission> validatePolicies(List<AllowPermission> allowRules, List<DenyPermission> denyRules) throws NullPointerException;
+    List<AllowPermission> validatePolicies(List<AllowPermission> allowRules, List<DenyPermission> denyRules, Map<AllowPermission,List<DenyPermission>> deniedRules) throws NullPointerException;
 
     /**
      * Reloads the privacyLevel File

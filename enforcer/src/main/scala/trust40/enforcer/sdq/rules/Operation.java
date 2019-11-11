@@ -7,12 +7,12 @@ import java.util.stream.Collectors;
 public class Operation {
     private final String name;
     private final String[] parameters;
+    private boolean allQuantified;
 
     public Operation(String name, String... parameters) {
-        Objects.requireNonNull(name);
-        Objects.requireNonNull(parameters);
-        this.name = name;
+        this.name = Objects.requireNonNull(name);
         this.parameters = parameters;
+        allQuantified = Arrays.stream(parameters).anyMatch(e -> e.equals("*"));
     }
 
     public String getName() {
@@ -23,6 +23,9 @@ public class Operation {
         return parameters;
     }
 
+    public boolean isAllQuantified(){
+        return allQuantified;
+    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -31,7 +34,11 @@ public class Operation {
         return name.equals(operation.name) &&
                 Arrays.equals(parameters, operation.parameters);
     }
-
+    public boolean equalOperation(Operation o){
+        if (o.equals(this))
+            return  true;
+        return o.name.equals(this.name) && (this.allQuantified || o.allQuantified);
+    }
     @Override
     public int hashCode() {
         int result = Objects.hash(name);
