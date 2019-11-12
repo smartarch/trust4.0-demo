@@ -4,8 +4,8 @@ import scala.collection.mutable
 
 object PrivacyLevel extends Enumeration {
   val PUBLIC = Value("public")
-  val INTERNAL_USE = Value("internal use")
-  val HIGHLY_SENSITIVE = Value("highly sensitive")
+  val INTERNAL_USE = Value("internal_use")
+  val HIGHLY_SENSITIVE = Value("highly_sensitive")
   val SENSITIVE = Value("sensitive")
   type PrivacyLevel = Value
 }

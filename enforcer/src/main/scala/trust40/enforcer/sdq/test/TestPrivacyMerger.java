@@ -11,35 +11,49 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-
 import trust40.enforcer.sdq.DesignTimeDecisionMaker;
 import trust40.enforcer.sdq.DesignTimeDecisionMakerImpl;
-import trust40.enforcer.sdq.PrivacyLevel;
-import trust40.enforcer.sdq.rules.AllowRule;
-import trust40.enforcer.sdq.rules.DenyRule;
-import trust40.enforcer.sdq.rules.ReasonedAllowRule;
+import trust40.enforcer.sdq.data.PrivacyLevel;
+import trust40.enforcer.sdq.data.rules.AllowRule;
+import trust40.enforcer.sdq.data.rules.DenyRule;
+import trust40.k4case.AllowPermission;
+import trust40.k4case.DenyPermission;
+import trust40.k4case.Permission;
 
 class TestPrivacyMerger {
 	static DesignTimeDecisionMaker decision;
-	static Path t;
-	/*
+	static Path privacyConfig;
+	static Path mappingConfig;
+
 	@BeforeAll
 	static void init() {
-		t = Paths.get("test.csv");
-		try (BufferedWriter writer = Files.newBufferedWriter(t, Charset.forName("UTF-8"))) {
-			writer.write("Data00;public\n");
-			writer.write("Data01;sensitive\n");
-			writer.close();
-			decision = new DesignTimeDecisionMakerImpl("test.csv");
+		privacyConfig = Paths.get("test.csv");
+		mappingConfig = Paths.get("mapping.csv");
+		try (BufferedWriter writerPrivacy = Files.newBufferedWriter(privacyConfig, Charset.forName("UTF-8"))) {
+
+			writerPrivacy.write("foreman;read(*);machine;sensitive\n");
+			writerPrivacy.write("worker;read(*);machine;highly_sensitive\n");
+			writerPrivacy.write("foreman;read(*);worker;sensitive\n");
+			writerPrivacy.close();
+			BufferedWriter writerConfig = Files.newBufferedWriter(mappingConfig, Charset.forName("UTF-8"));
+			writerConfig.write("A-foreman;foreman\n");
+			writerConfig.write("A-worker-001;worker\n");
+			writerConfig.write("A-worker-002;worker\n");
+			writerConfig.write("factory;factory\n");
+			writerConfig.write("dispenser;dispenser\n");
+			writerConfig.write("machine-A;machine\n");
+			writerConfig.close();
+			decision = new DesignTimeDecisionMakerImpl(privacyConfig.getFileName().toString(),mappingConfig.getFileName().toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("IO-Error");
@@ -47,82 +61,71 @@ class TestPrivacyMerger {
 	}
 
 	@Test
-	void testForemanDenyHighlySensitive() {
+	void testNoDenyRules() {
+		List<AllowPermission> listAllow = createDefaultAllowPermission();
+		List<DenyPermission> listDeny = new ArrayList<>();
+		Map<AllowPermission,List<DenyPermission>> map = new HashMap<>();
+		List<AllowPermission> permissions = decision.validatePolicies(listAllow,listDeny,map);
+		
+		assertThat(listAllow, is(permissions) );
+	}
+	@Test
+	void testDenyRulesNotApplicable(){
+		List<AllowPermission> listAllow = createDefaultAllowPermission();
+		List<DenyPermission> listDeny = Stream.of(new DenyPermission("A-foreman", "read(test)", "A-worker-001", trust40.enforcer.tcof.PrivacyLevel.SENSITIVE()))
+				.collect(Collectors.toList());
+		Map<AllowPermission,List<DenyPermission>> map = new HashMap<>();
+		List<AllowPermission> permissions = decision.validatePolicies(listAllow,listDeny,map);
 
-		List<AllowRule> listAllow = Stream.of(new AllowRule("Foreman", "read", "Data00"),
-				new AllowRule("Test", "read", "Data00"), new AllowRule("Foreman", "read", "Data01"))
-				.collect(Collectors.toList());
-		List<DenyRule> listDeny = Stream
-				.of(new DenyRule("Foreman", "read", "Data00", PrivacyLevel.PUBLIC),
-						new DenyRule("Foreman", "read", "Data01", PrivacyLevel.HIGHLY_SENSITIVE))
-				.collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rulesexpected = Stream.of(
-				new ReasonedAllowRule("Test", "read","Data00", null),
-				new ReasonedAllowRule("Foreman", "read","Data01", null)
-				).collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rules = decision.validatePolicies(listAllow, listDeny);
-		
-		assertThat(rules, is(rulesexpected) );
+		assertThat(listAllow, is(permissions) );
 	}
 	@Test
-	void testForemanDenySensitive() {
-		List<AllowRule> listAllow = Stream.of(
-				new AllowRule("Test", "read", "Data00"), new AllowRule("Foreman", "read", "Data01"))
+	void testDenyRulesWrongPrivacy(){
+		List<AllowPermission> listAllow = createDefaultAllowPermission();
+		listAllow.add(new AllowPermission("A-foreman", "read(phoneNumber)", "A-worker-001"));
+		List<DenyPermission> listDeny = Stream.of(new DenyPermission("A-foreman", "read(*)", "A-worker-001", trust40.enforcer.tcof.PrivacyLevel.HIGHLY_SENSITIVE()))
 				.collect(Collectors.toList());
-		List<DenyRule> listDeny = Stream
-				.of(new DenyRule("Foreman", "read", "Data01", PrivacyLevel.SENSITIVE))
-				.collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rulesexpected = Stream.of(new ReasonedAllowRule("Test", "read","Data00", null)).collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rules = decision.validatePolicies(listAllow, listDeny);
-		
-		assertThat(rules, is(rulesexpected) );
+		Map<AllowPermission,List<DenyPermission>> map = new HashMap<>();
+		List<AllowPermission> permissions = decision.validatePolicies(listAllow,listDeny,map);
+		assertThat(listAllow, is(permissions) );
 	}
 	@Test
-	void testFormanDenyInternalUse() {
-		List<AllowRule> listAllow = Stream.of(new AllowRule("Test", "read", "Data00"), new AllowRule("Foreman", "read", "Data01"))
+	void testDenyRulesExactPrivacy(){
+		List<AllowPermission> listAllow = createDefaultAllowPermission();
+		listAllow.add(new AllowPermission("A-foreman", "read(phoneNumber)", "A-worker-001"));
+		List<DenyPermission> listDeny = Stream.of(new DenyPermission("A-foreman", "read(*)", "A-worker-001", trust40.enforcer.tcof.PrivacyLevel.SENSITIVE()))
 				.collect(Collectors.toList());
-		List<DenyRule> listDeny = Stream
-				.of(new DenyRule("Foreman", "read", "Data01", PrivacyLevel.INTERNAL_USE))
-				.collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rulesexpected = Stream.of(new ReasonedAllowRule("Test", "read","Data00", null)).collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rules = decision.validatePolicies(listAllow, listDeny);
-		
-		assertThat(rules, is(rulesexpected) );
+		Map<AllowPermission,List<DenyPermission>> map = new HashMap<>();
+		List<AllowPermission> permissions = decision.validatePolicies(listAllow,listDeny,map);
+		assertThat(createDefaultAllowPermission(), is(permissions) );
 	}
 	@Test
-	void testFormanDenyPublic() {
-		List<AllowRule> listAllow = Stream.of(new AllowRule("Test", "read", "Data00"), new AllowRule("Foreman", "read", "Data01"))
+	void testDenyRulesLowerPrivacy(){
+		List<AllowPermission> listAllow = createDefaultAllowPermission();
+		listAllow.add(new AllowPermission("A-foreman", "read(phoneNumber)", "A-worker-001"));
+		List<DenyPermission> listDeny = Stream.of(new DenyPermission("A-foreman", "read(*)", "A-worker-001", trust40.enforcer.tcof.PrivacyLevel.PUBLIC()))
 				.collect(Collectors.toList());
-		List<DenyRule> listDeny = Stream
-				.of(new DenyRule("Foreman", "read", "Data01", PrivacyLevel.PUBLIC))
-				.collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rulesexpected = Stream.of(new ReasonedAllowRule("Test", "read","Data00", null)).collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rules = decision.validatePolicies(listAllow, listDeny);
-		
-		assertThat(rules, is(rulesexpected) );
+		Map<AllowPermission,List<DenyPermission>> map = new HashMap<>();
+		List<AllowPermission> permissions = decision.validatePolicies(listAllow,listDeny,map);
+		assertThat(createDefaultAllowPermission(), is(permissions) );
 	}
-	
-	@Test
-	void testFormanDenyPublic2() {
-		List<AllowRule> listAllow = Stream.of(new AllowRule("Foreman", "read", "Data01"))
+	private List<AllowPermission> createDefaultAllowPermission(){
+		List<AllowPermission> listAllow = Stream.of(new AllowPermission("A-foreman", "enter()", "factory"),
+				new AllowPermission("A-worker-001", "enter()", "dispenser"), new AllowPermission("A-worker-002", "read(machineData)", "machine-A"),
+				new AllowPermission("A-foreman", "read(machineData)", "machine-A")
+				)
 				.collect(Collectors.toList());
-		List<DenyRule> listDeny = Stream
-				.of(new DenyRule("Foreman", "read", "Data01", PrivacyLevel.PUBLIC))
-				.collect(Collectors.toList());
-		Collection<ReasonedAllowRule> rulesexpected = new ArrayList<ReasonedAllowRule>();
-		Collection<ReasonedAllowRule> rules = decision.validatePolicies(listAllow, listDeny);
-		
-		assertThat(rules, is(rulesexpected) );
+		return listAllow;
 	}
 
 	@AfterAll
 	static void clean() {
 		try {
-			Files.delete(t);
+			Files.delete(privacyConfig);
+			Files.delete(mappingConfig);
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("IO-Error: can't delete privacy File");
 		}
 	}
-	*/
 }

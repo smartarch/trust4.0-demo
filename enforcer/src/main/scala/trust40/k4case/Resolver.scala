@@ -89,9 +89,8 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
         }
       }
       val rules = new DesignTimeDecisionMakerImpl
-      networkPermission = rules.validatePolicies(perms.toList.asJava,deny.toList.asJava,rejectedRules).asScala.toList
+      networkPermission = rules.validatePolicies(perms.toList.asJava, deny.toList.asJava, rejectedRules).asScala.toList
       // call to KIT <- factoryTeam.actions ... => consistent set of action
-      println("Test")
     } else {
       log.error("Error. No solution exists.")
     }

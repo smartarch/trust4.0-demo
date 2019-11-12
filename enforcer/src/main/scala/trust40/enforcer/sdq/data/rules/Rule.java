@@ -1,4 +1,7 @@
-package trust40.enforcer.sdq.rules;
+package trust40.enforcer.sdq.data.rules;
+
+import trust40.enforcer.sdq.data.DataObject;
+import trust40.enforcer.sdq.data.Operation;
 
 import java.util.Objects;
 
@@ -46,6 +49,11 @@ public abstract class Rule {
         return object;
     }
 
+    /**
+     * Checks equality on the type Level
+     * @param f
+     * @return
+     */
     public final boolean equalRule(Rule f) {
         if (f == null)
             return false;

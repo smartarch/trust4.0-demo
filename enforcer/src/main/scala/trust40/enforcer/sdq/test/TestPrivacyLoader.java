@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import trust40.enforcer.sdq.io.PrivacyLoader;
-import trust40.enforcer.sdq.rules.PrivacyTable;
 
 class TestPrivacyLoader {
 	static Path t;
@@ -28,8 +27,6 @@ class TestPrivacyLoader {
 			writer.write("foreman;read(*);worker;public\n");
 			writer.write("foreman;read(*);machine;sensitive\n");
             writer.write("worker;read(*);machine;highly_sensitive\n");
-			//writer.write("Data02;sensitive\n");
-			//writer.write("Data03;highly_sensitive\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("IO-Error");

@@ -1,9 +1,9 @@
-package trust40.enforcer.sdq.rules;
+package trust40.enforcer.sdq.data.rules;
 
-import scala.Enumeration;
-import trust40.enforcer.sdq.PrivacyLevel;
+import trust40.enforcer.sdq.data.PrivacyLevel;
+import trust40.enforcer.sdq.data.DataObject;
+import trust40.enforcer.sdq.data.Operation;
 import trust40.k4case.DenyPermission;
-
 import java.util.Objects;
 
 public class DenyRule extends Rule {
@@ -36,11 +36,16 @@ public class DenyRule extends Rule {
     public int hashCode() {
         return Objects.hash(super.hashCode(), privacyLevel);
     }
+
     @Override
     public String toString() {
     	return "[" + this.getSubject() + " " + this.getOperation() + " " + this.getObject() + " " + getPrivacyLevel() + "]";
     }
 
+    /**
+     * Converts the DenyRule to a {@link DenyPermission} for the scala application
+     * @return DenyPermision
+     */
     public DenyPermission getScalaPermission(){
         return new DenyPermission(getSubject().getValue(),getOperation().toString(),getObject().getValue(), trust40.enforcer.tcof.PrivacyLevel.withName(getPrivacyLevel().toString()));
     }

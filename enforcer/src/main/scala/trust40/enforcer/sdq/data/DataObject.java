@@ -1,5 +1,6 @@
-package trust40.enforcer.sdq.rules;
+package trust40.enforcer.sdq.data;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -15,6 +16,16 @@ public class DataObject {
     }
     public DataObject(String type){
         this(type, null);
+    }
+
+    /**
+     * Creates a DataObject by mapping the string instance (representing a subject/object) to a type
+     * @param value String representation of an instance (subject, object)
+     * @param datatypeMapping Maping between instance and types (key is instance and value is type level)
+     * @return
+     */
+    public static DataObject mapObject(String value, Map<String, String> datatypeMapping) {
+        return new DataObject(datatypeMapping.get(value), value);
     }
 
     @Override

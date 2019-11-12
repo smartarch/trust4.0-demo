@@ -3,10 +3,10 @@ package trust40.enforcer.sdq.test;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import trust40.enforcer.sdq.PrivacyLevel;
-import trust40.enforcer.sdq.rules.DataObject;
-import trust40.enforcer.sdq.rules.Operation;
-import trust40.enforcer.sdq.rules.PrivacyTable;
+import trust40.enforcer.sdq.data.PrivacyLevel;
+import trust40.enforcer.sdq.data.DataObject;
+import trust40.enforcer.sdq.data.Operation;
+import trust40.enforcer.sdq.data.PrivacyTable;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;

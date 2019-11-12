@@ -6,8 +6,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 
-import trust40.enforcer.sdq.PrivacyLevel;
-import trust40.enforcer.sdq.rules.*;
+import scala.Enumeration;
+import trust40.enforcer.sdq.data.PrivacyLevel;
+import trust40.enforcer.sdq.data.DataObject;
+import trust40.enforcer.sdq.data.Operation;
+import trust40.enforcer.sdq.data.rules.*;
 import trust40.k4case.AllowPermission;
 import trust40.k4case.DenyPermission;
 
@@ -88,13 +91,27 @@ class TestRule {
     @Test
     @DisplayName("Tests ScalaConversion Deny Rule")
     void scalaConversionTestDenyRule(){
-        DenyRule denyRule = new DenyRule(new DataObject("worker", "test123"), new Operation("test234", "*"), new DataObject("worker", "test345"), PrivacyLevel.HIGHLY_SENSITIVE);
-        DenyPermission permission = denyRule.getScalaPermission();
-        assertAll("check equals scala with type",
-                () -> assertEquals("test123", permission.subj()),
-                () -> assertEquals("test234(*)",permission.ver()),
-                () -> assertEquals("test345",permission.obj()),
-                () -> assertEquals(trust40.enforcer.tcof.PrivacyLevel.HIGHLY_SENSITIVE(),permission.lvl())
-        );
+        DenyPermission permission = createDenyRule(PrivacyLevel.HIGHLY_SENSITIVE).getScalaPermission();
+		checkDenyPermission(permission, trust40.enforcer.tcof.PrivacyLevel.HIGHLY_SENSITIVE());
+
+		permission = createDenyRule(PrivacyLevel.SENSITIVE).getScalaPermission();
+		checkDenyPermission(permission, trust40.enforcer.tcof.PrivacyLevel.SENSITIVE());
+
+		permission = createDenyRule(PrivacyLevel.INTERNAL_USE).getScalaPermission();
+		checkDenyPermission(permission, trust40.enforcer.tcof.PrivacyLevel.INTERNAL_USE());
+
+		permission = createDenyRule(PrivacyLevel.PUBLIC).getScalaPermission();
+		checkDenyPermission(permission, trust40.enforcer.tcof.PrivacyLevel.PUBLIC());
     }
+    private DenyRule createDenyRule(PrivacyLevel level){
+		return new DenyRule(new DataObject("worker", "test123"), new Operation("test234", "*"), new DataObject("worker", "test345"), level);
+	}
+    private void checkDenyPermission(DenyPermission permission, Enumeration.Value privacyLevel){
+		assertAll("check equals scala with type",
+				() -> assertEquals("test123", permission.subj()),
+				() -> assertEquals("test234(*)",permission.ver()),
+				() -> assertEquals("test345",permission.obj()),
+				() -> assertEquals(privacyLevel,permission.lvl())
+		);
+	}
 }

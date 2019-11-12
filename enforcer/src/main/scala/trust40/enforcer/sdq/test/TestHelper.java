@@ -1,6 +1,6 @@
 package trust40.enforcer.sdq.test;
 
-import trust40.enforcer.sdq.rules.PrivacyTable;
+import trust40.enforcer.sdq.data.PrivacyTable;
 
 public class TestHelper {
     public static PrivacyTable getPrivacyTable(){
