@@ -30,6 +30,7 @@ class Enforcer(val resolver: ActorRef) extends Actor {
 
   private var currentEpoch: Int = _
   private var currentPermissions: List[Permission] = _
+  private var currentRejectedPermissions: Map[AllowPermission, List[DenyPermission]] = _
   private val currentNotifications: mutable.Set[ComponentNotification] = mutable.Set.empty[ComponentNotification]
 
   private def processReset(epoch: Int): Unit = {
@@ -42,6 +43,7 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     nextStepNo = 0
 
     currentPermissions = List()
+    currentRejectedPermissions = Map()
     currentNotifications.clear()
   }
 
@@ -49,15 +51,16 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     eventsSinceLastResolve ++= events
   }
 
-  private def processResolverResult(permissions: List[Permission], notifications: List[ComponentNotification]): Unit = {
+  private def processResolverResult(permissions: List[Permission], notifications: List[ComponentNotification], rejectedPermissions: Map[AllowPermission, List[DenyPermission]]): Unit = {
     resolving = false
     currentPermissions = permissions
+    currentRejectedPermissions = rejectedPermissions
 
     for (notif <- notifications) {
       currentNotifications += notif
     }
 
-    context.parent ! Permissions(currentEpoch, currentPermissions)
+    context.parent ! Permissions(currentEpoch, currentPermissions, currentRejectedPermissions)
     context.parent ! Notifications(currentEpoch, currentNotifications.toList)
   }
 
@@ -85,8 +88,8 @@ class Enforcer(val resolver: ActorRef) extends Actor {
     case Events(events) => processEvents(events)
     case Step(currentTime) => processStep(currentTime)
 
-    case ResolverResult(epoch, permissions, notifications) =>
-      if (currentEpoch == epoch) processResolverResult(permissions, notifications)
+    case ResolverResult(epoch, permissions, notifications, rejectedPermissions) =>
+      if (currentEpoch == epoch) processResolverResult(permissions, notifications, rejectedPermissions)
   }
 
 }

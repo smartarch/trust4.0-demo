@@ -5,8 +5,6 @@ import java.time.LocalDateTime
 import akka.actor.{Actor, Props}
 import akka.event.Logging
 import trust40.enforcer.sdq.DesignTimeDecisionMakerImpl
-import collection.mutable._
-import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 import trust40.enforcer.tcof.PrivacyLevel.PrivacyLevel
 import trust40.enforcer.tcof.{AllowAction, DenyAction, NotifyAction}
@@ -24,7 +22,7 @@ object Resolver {
   def props(scenarioSpec: TestScenarioSpec) = Props(new Resolver(scenarioSpec))
 
   final case class Resolve(currentTime: LocalDateTime, events: List[ScenarioEvent])
-  final case class ResolverResult(epoch: Int, permissions: List[Permission], notifications: List[ComponentNotification])
+  final case class ResolverResult(epoch: Int, permissions: List[Permission], notifications: List[ComponentNotification], rejectedPermissions: Map[AllowPermission, List[DenyPermission]])
 }
 
 class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
@@ -65,7 +63,6 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
     val notifs = mutable.ListBuffer.empty[ComponentNotification]
     var networkPermission: List[AllowPermission] = null;
     val factoryTeam = scenario.factoryTeam
-    val listDenyRulesApp = mutable.ListBuffer.empty[DenyPermission];
     val rejectedRules = new java.util.HashMap[AllowPermission, java.util.List[DenyPermission]];
     factoryTeam.init()
     factoryTeam.solverLimitTime(solverLimitTime)
@@ -97,7 +94,9 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
 
     // log.info("Resolver finished")
 
-    sender() ! ResolverResult(currentEpoch, networkPermission, notifs.toList)
+    val rejectedRulesScala = (for ((allowPermission, denyRules) <- rejectedRules.asScala) yield allowPermission -> denyRules.asScala.toList).toMap
+
+    sender() ! ResolverResult(currentEpoch, networkPermission, notifs.toList, rejectedRulesScala)
   }
 
   private def processReset(epoch: Int): Unit = {

@@ -12,7 +12,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 case class WorkerState(position: Position, hasHeadGear: Boolean, standbyFor: Option[String])
-case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)])
+case class SimulationState(time: String, playState: Simulation.State.State, workers: Map[String, WorkerState], permissions: List[(String, String, String)], rejectedPermissions: List[(String, String, String, List[(String, String, String, String)])])
 case class AccessResult(result: String)
 case class ValidateResult(allowed: Boolean)
 
@@ -28,7 +28,7 @@ object Simulation {
 
   final case class Reset(epoch: Int)
   final case class Events(epoch: Int, events: List[ScenarioEvent])
-  final case class Permissions(epoch: Int, permissions: List[Permission])
+  final case class Permissions(epoch: Int, permissions: List[Permission], rejectedPermissions: Map[AllowPermission, List[DenyPermission]])
   final case class Notifications(epoch: Int, notifications: List[ComponentNotification])
   final case class Step(currentTime: LocalDateTime)
   final case class WorkerStep(currentTime: LocalDateTime, notifications: List[(String, List[String])])
@@ -99,6 +99,7 @@ class Simulation() extends Actor with Timers {
 
   private val workerStates = mutable.HashMap.empty[String, WorkerState]
   private var currentPermissions: List[Permission] = _
+  private var currentRejectedPermissions: Map[AllowPermission, List[DenyPermission]] = _
   private var currentNotifications: List[ComponentNotification] = _
 
   private var currentEpoch = 0
@@ -115,6 +116,7 @@ class Simulation() extends Actor with Timers {
     currentTime = null
     workerStates.clear()
     currentPermissions = List()
+    currentRejectedPermissions = Map()
     currentNotifications = List()
 
     resolver ! Reset(currentEpoch)
@@ -172,7 +174,10 @@ class Simulation() extends Actor with Timers {
       workerStates.toMap,
       currentPermissions.collect({
         case AllowPermission(subj, verb, obj) => (subj, verb, obj)
-      })
+      }),
+      currentRejectedPermissions.collect({
+        case (AllowPermission(allowSubj, allowVerb, allowObj), (denyRules: List[DenyPermission])) => (allowSubj, allowVerb, allowObj, denyRules.collect({case DenyPermission(denySubj, denyVerb, denyObj, denyLevel) => (denySubj, denyVerb, denyObj, denyLevel.toString)}))
+      }).toList
     )
   }
 
@@ -224,8 +229,9 @@ class Simulation() extends Actor with Timers {
     enforcer ! Enforcer.Events(events)
   }
 
-  private def processPermissions(permissions: List[Permission]): Unit = {
+  private def processPermissions(permissions: List[Permission], rejectedPermissions: Map[AllowPermission, List[DenyPermission]]): Unit = {
     currentPermissions = permissions
+    currentRejectedPermissions = rejectedPermissions
   }
 
   private def processNotifications(notifications: List[ComponentNotification]): Unit = {
@@ -253,9 +259,9 @@ class Simulation() extends Actor with Timers {
         processNotifications(notifications)
       }
 
-    case Permissions(epoch, permissions) =>
+    case Permissions(epoch, permissions, rejectedPermissions) =>
       if (epoch == currentEpoch) {
-        processPermissions(permissions)
+        processPermissions(permissions, rejectedPermissions)
       }
   }
 }
