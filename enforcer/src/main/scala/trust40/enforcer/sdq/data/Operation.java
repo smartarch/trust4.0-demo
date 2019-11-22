@@ -74,6 +74,6 @@ public class Operation {
 
     @Override
     public String toString() {
-        return name  + Arrays.stream(parameters).collect(Collectors.joining(",","(",")"));
+        return name  + (parameters.length > 0?  Arrays.stream(parameters).collect(Collectors.joining(",","(",")")): "");
     }
 }
