@@ -12,7 +12,7 @@ function getEnforcerUrl(path) {
 
 router.getAsync('/access/:workerId', async (req, res) => {
     let workerId = req.params.workerId;
-    if (workerId === '221') {
+    if (workerId === '391640374') {
         workerId = 'A-worker-001';
     }
 

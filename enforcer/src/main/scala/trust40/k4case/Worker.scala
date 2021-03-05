@@ -287,7 +287,6 @@ class SimulatedStandbyInShift(person: String, val inShiftId: String, startTime: 
 
   override protected def generateActions(): Unit = {
     if (forWpId == null) {
-      // log.info(currentNotifications.toString)
       for (notif <- currentNotifications) {
         notif match {
           case ("workAssigned", List(shiftId, name, wpId, inShiftId)) =>

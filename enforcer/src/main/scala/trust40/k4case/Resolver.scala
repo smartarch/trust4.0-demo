@@ -38,9 +38,9 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
 
 
   private def processResolve(currentTime: LocalDateTime, events: List[ScenarioEvent]): Unit = {
-    // log.info("Resolver started")
-    // log.info("Time: " + currentTime)
-    // log.info("Events: " + events)
+    log.info("Resolver started")
+    log.info("Time: " + currentTime)
+    log.info("Events: " + events)
 
 
     scenario.now = currentTime
@@ -67,14 +67,14 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
     factoryTeam.init()
     factoryTeam.solverLimitTime(solverLimitTime)
     factoryTeam.solve()
-        if (factoryTeam.exists) {
-      // log.info("Utility: " + shiftTeams.instance.solutionUtility)
-      // log.info(shiftTeams.instance.toString)
+
+    if (factoryTeam.exists) {
+      log.info("Utility: " + factoryTeam.instance.solutionUtility)
+      log.info(factoryTeam.instance.toString)
 
       factoryTeam.commit()
 
       for (action <- factoryTeam.actions) {
-        // println(action)
         action match {
           case AllowAction(subj: WithId, verb, obj: WithId) =>
             perms += AllowPermission(subj.id, verb.toString, obj.id)
@@ -92,7 +92,7 @@ class Resolver(val scenarioSpec: TestScenarioSpec) extends Actor {
       log.error("Error. No solution exists.")
     }
 
-    // log.info("Resolver finished")
+    log.info("Resolver finished")
 
     val rejectedRulesScala = (for ((allowPermission, denyRules) <- rejectedRules.asScala) yield allowPermission -> denyRules.asScala.toList).toMap
 
